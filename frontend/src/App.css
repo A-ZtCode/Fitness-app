@@ -124,3 +124,11 @@ input#duration {
 .signup {
   margin: 20px;
 }
+
+
+/* MN_scrum 13 - active tab diff colour */
+.custom-nav-link.nav-link.active {
+  color: #FFFFFF !important;
+  font-weight: bold;
+  box-shadow: inset 0 -3px 0 0 #FFFFFF;
+}
