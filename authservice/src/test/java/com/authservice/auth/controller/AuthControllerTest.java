@@ -1,5 +1,11 @@
 package com.authservice.auth.controller;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -10,9 +16,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.authservice.auth.model.User;
 import com.authservice.auth.repository.UserRepository;
-
-import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
 
 public class AuthControllerTest {
 
@@ -31,14 +34,19 @@ public class AuthControllerTest {
         MockitoAnnotations.openMocks(this);
     }
 
+    private User createUser(String username, String password) {
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(password);
+        return user;
+    }
+
     // Tests for sign up
     @Test
     public void registerUser_whenUserDoesNotExist_registersUser() {
-        User user = new User();
-        user.setUsername("validUser");
-        user.setPassword("password");
+        User user = createUser("newUser", "password");
 
-        when(userRepository.existsByUsername("validUser"))
+        when(userRepository.existsByUsername("newUser"))
             .thenReturn(false);
         when(passwordEncoder.encode("password"))
             .thenReturn("encodedPassword");
@@ -53,9 +61,7 @@ public class AuthControllerTest {
 
     @Test
     public void registerUser_whenUserExists_returnsBadRequest() {
-        User user = new User();
-        user.setUsername("existingUser");
-        user.setPassword("password");
+        User user = createUser("existingUser", "password");
 
         when(userRepository.existsByUsername("existingUser"))
             .thenReturn(true);
@@ -70,13 +76,8 @@ public class AuthControllerTest {
     // Tests for login
     @Test
     public void authenticateUser_whenCredentialsAreValid_authenticatesUser() {
-        User user = new User();
-        user.setUsername("validUser");
-        user.setPassword("password");
-
-        User existingUser = new User();
-        existingUser.setUsername("validUser");
-        existingUser.setPassword("encodedPassword");
+        User user = createUser("validUser", "password");
+        User existingUser = createUser("validUser", "encodedPassword");
 
         when(userRepository.findByUsername("validUser"))
             .thenReturn(existingUser);
