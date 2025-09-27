@@ -33,8 +33,13 @@ const Login = ({ onLogin }) => {
       } else {
         setError(data || "Invalid credentials");
       }
+      
     } catch (err) {
-      setError(err.response?.data || "Failed to login");
+      if (err.response && err.response.status === 401) {
+        setError('Username or password is incorrect - please try again.');
+      } else {
+        setError('Failed to login');
+      }
     }
   };
 
@@ -91,6 +96,7 @@ const Login = ({ onLogin }) => {
         </Button>
       </Typography>
     </Box>
+
   );
 };
 
