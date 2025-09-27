@@ -30,8 +30,6 @@ const Login = ({ onLogin }) => {
 
       if (status === 200) {
         onLogin(email);
-      } else {
-        setError(data || "Invalid credentials");
       }
       
     } catch (err) {
