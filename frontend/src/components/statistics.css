@@ -1,12 +1,9 @@
-/* Custom CSS Variables (Replace your existing color variables for a clean look) */
-/* var(--color-surface) is white/light grey, and var(--color-text) is dark */
-
 :root {
     --color-primary-accent: #5B53D0; /* Deep Blue/Violet */
     --color-secondary-accent: #8b87d5; /* Light Violet */
     --color-neutral-bg: #F8F9FA; /* Very light background for container */
     --color-card-bg: #FFFFFF; /* White background for cards */
-    --color-text-dark: #343A40;
+    --color-text-dark: #343A40; /* For text on light backgrounds */
     --color-text-light: #F8F8F8; /* For text on dark backgrounds */
     --color-text-muted: #6c757d; /* For secondary text */
 }
@@ -122,7 +119,7 @@
 
 .small-chart {
     grid-column: span 1;
-    /* FIX: Ensure enough min-height for the chart and legend */
+    /* Ensure enough min-height for the chart and legend */
     min-height: 500px; 
     display: flex; /* Use flexbox to organize content vertically */
     flex-direction: column;
