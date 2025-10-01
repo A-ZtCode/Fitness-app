@@ -1,5 +1,5 @@
 /* Custom CSS Variables (Replace your existing color variables for a clean look) */
-/* Assuming var(--color-surface) is white/light grey, and var(--color-text) is dark */
+/* var(--color-surface) is white/light grey, and var(--color-text) is dark */
 
 :root {
     --color-primary-accent: #5B53D0; /* Deep Blue/Violet */
@@ -32,7 +32,7 @@
     display: flex;
     justify-content: space-between;
     gap: 20px;
-    margin-bottom: 50px; 
+    margin-bottom: 50px;
 }
 
 .stat-card {
@@ -54,7 +54,7 @@
     margin-top: 0;
     font-size: 1em;
     font-weight: 400;
-    /* FIX: Ensure header text is visible on all card types */
+    /* Ensure header text is visible on all card types */
     color: inherit; /* This makes it take color from parent stat-card */
     opacity: 0.9;
     margin-bottom: 10px; 
@@ -65,7 +65,7 @@
     font-weight: 700;
     margin: 0; 
     line-height: 1.1; 
-    /* FIX: Ensure value text is visible on all card types */
+    /* Ensure value text is visible on all card types */
     color: inherit; /* This makes it take color from parent stat-card */
 }
 
@@ -84,7 +84,7 @@
     border: 1px solid var(--color-neutral-bg); 
 }
 
-/* FIX: Specific styling for the data value in the neutral card */
+/* Specific styling for the data value in the neutral card */
 .accent-bg p {
     color: var(--color-primary-accent); /* Highlight the number with the primary accent color */
     font-weight: 700; 
@@ -94,7 +94,7 @@
 /* Charts Grid Layout */
 .charts-grid {
     display: grid;
-    grid-template-columns: 2fr 1.5fr; /* ADJUSTED: More space for the donut chart side */
+    grid-template-columns: 2fr 1.5fr; /* More space for the donut chart side */
     gap: 20px;
 }
 

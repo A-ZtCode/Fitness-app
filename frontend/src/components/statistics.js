@@ -6,7 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 
-// Mock data for the Line Chart (unchanged)
+// Mock data for the Line Chart
 const mockWeeklyActivityData = [
     { name: 'Mon', Duration: 60, Calories: 500 },
     { name: 'Tue', Duration: 45, Calories: 400 },
@@ -90,17 +90,17 @@ const Statistics = ({ currentUser }) => {
       ) : (
         <>
           <div className="stats-header-cards">
-            {/* Card 1: Reverting to clear text colors for visibility */}
+            {/* Card 1: clear text colors for visibility */}
             <div className="stat-card primary-bg">
               <h3>Total Duration</h3>
               <p>{totalDuration} min</p>
             </div>
-            {/* Card 2: Reverting to clear text colors for visibility */}
+            {/* Card 2: clear text colors for visibility */}
             <div className="stat-card secondary-bg">
               <h3>Total Exercise Types</h3>
               <p>{totalExerciseTypes}</p>
             </div>
-            {/* Card 3: Ensure consistent styling with dark text and primary accent for value */}
+            {/* Card 3: styling with dark text and primary accent for value */}
             <div className="stat-card accent-bg">
               <h3>Avg. Daily Calories (Mock)</h3>
               <p>450 kcal</p>
@@ -141,7 +141,7 @@ const Statistics = ({ currentUser }) => {
                     // paddingAngle={3} 
                     labelLine={false} // Hide the line connecting labels
                     
-                    // FIX 1: Custom Label to show percentage outside slices clearly
+                    
                     // Use the built-in label component which calculates optimal positions
                     label={({ 
                         cx, cy, midAngle, innerRadius, outerRadius, value, percent, index 
@@ -171,7 +171,7 @@ const Statistics = ({ currentUser }) => {
                     ))}
                   </Pie>
                   
-                  {/* FIX 2: Add 'cursor={{ stroke: 'none' }}' to prevent the tooltip from highlighting the whole chart area */}
+                  {/*Add 'cursor={{ stroke: 'none' }}' to prevent the tooltip from highlighting the whole chart area */}
                   <Tooltip 
                       formatter={(value) => [`${value} min`, 'Total Duration']} 
                       cursor={{ fill: 'transparent' }} // Prevents dark overlay on hover
@@ -179,7 +179,7 @@ const Statistics = ({ currentUser }) => {
                   
                   <Legend
                     content={<CustomDonutChartLegend />} 
-                    layout="vertical" // Changed to vertical for cleaner custom layout
+                    layout="vertical"
                     verticalAlign="bottom" 
                     align="center" 
                     wrapperStyle={{ paddingTop: '20px' }} 
