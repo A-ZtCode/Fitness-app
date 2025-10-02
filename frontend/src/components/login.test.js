@@ -5,13 +5,18 @@ import Login from './login';
 import { MemoryRouter } from 'react-router-dom';
 
 jest.mock('axios');
+let onLogin;
 
-it('renders login form', () => {
+beforeEach(() => {
+    onLogin = jest.fn();
     render(
         <MemoryRouter>
-            <Login onLogin={jest.fn()} />
+            <Login onLogin={onLogin} />
         </MemoryRouter>
     );
+});
+
+it('renders login form', () => {
     expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Password/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Login/i })).toBeInTheDocument();
@@ -19,12 +24,6 @@ it('renders login form', () => {
 
 it('calls onLogin on successful login', async () => {
     axios.post.mockResolvedValue({ status: 200 });
-    const onLogin = jest.fn();
-    render(
-        <MemoryRouter>
-            <Login onLogin={onLogin} />
-        </MemoryRouter>
-    );
     fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: 'test@test.com' } });
     fireEvent.change(screen.getByLabelText(/Password/i), { target: { value: 'password' } });
     fireEvent.click(screen.getByRole('button', { name: /Login/i }));
@@ -34,11 +33,6 @@ it('calls onLogin on successful login', async () => {
 
 it('shows error message on incorrect password', async () => {
     axios.post.mockRejectedValue({ response: { status: 401, data: 'Invalid credentials' } });
-    render(
-        <MemoryRouter>
-            <Login onLogin={jest.fn()} />
-        </MemoryRouter>
-    );
     fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: 'test@test.com' } });
     fireEvent.change(screen.getByLabelText(/Password/i), { target: { value: 'wrongpassword' } });
     fireEvent.click(screen.getByRole('button', { name: /Login/i }));
