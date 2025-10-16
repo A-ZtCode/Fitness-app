@@ -177,7 +177,7 @@ const TrackExercise = ({ currentUser }) => {
           />
         </Form.Group>
         <Form.Group controlId="duration" style={{ marginBottom: '40px' }}>
-          <Form.Label>Duration:</Form.Label>
+          <Form.Label>Duration(in minutes):</Form.Label>
           
           {/* Mode Toggle */}
           <div style={{ marginBottom: '15px' }}>
