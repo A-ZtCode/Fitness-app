@@ -1,11 +1,11 @@
 :root {
-    --color-primary-accent: #5B53D0; /* Deep Blue/Violet */
-    --color-secondary-accent: #8b87d5; /* Light Violet */
-    --color-neutral-bg: #F8F9FA; /* Very light background for container */
-    --color-card-bg: #FFFFFF; /* White background for cards */
-    --color-text-dark: #343A40; /* For text on light backgrounds */
-    --color-text-light: #F8F8F8; /* For text on dark backgrounds */
-    --color-text-muted: #6c757d; /* For secondary text */
+    --color-primary-accent: #5B53D0; 
+    --color-secondary-accent: #ff0073; 
+    --color-neutral-bg: #F8F9FA; 
+    --color-card-bg: #FFFFFF; 
+    --color-text-dark: #343A40; 
+    --color-text-light: #F8F8F8; 
+    --color-text-muted: #6c757d;
 }
 
 /* Layout and Containers */
@@ -52,7 +52,7 @@
     font-size: 1em;
     font-weight: 400;
     /* Ensure header text is visible on all card types */
-    color: inherit; /* This makes it take color from parent stat-card */
+    color: inherit;
     opacity: 0.9;
     margin-bottom: 10px; 
 }
@@ -62,29 +62,38 @@
     font-weight: 700;
     margin: 0; 
     line-height: 1.1; 
-    /* Ensure value text is visible on all card types */
-    color: inherit; /* This makes it take color from parent stat-card */
+    color: inherit;
 }
 
-/* Color classes for metric cards: Ensure text colors are set explicitly for readability */
-.primary-bg { 
-    background-color: var(--color-primary-accent); 
-    color: var(--color-text-light); /* White text on dark primary background */
-}
-.secondary-bg { 
-    background-color: var(--color-secondary-accent); 
-    color: var(--color-text-light); /* White text on light secondary background */
-}
+/* Base style applied to all three metric cards */
+.primary-bg,
+.secondary-bg,
 .accent-bg { 
-    background-color: var(--color-card-bg); 
-    color: var(--color-text-dark); /* Dark text on white background for header */
-    border: 1px solid var(--color-neutral-bg); 
+    background-color: var(--color-card-bg); /* White background for all */
+    
+    color: var(--color-text-dark); 
 }
 
-/* Specific styling for the data value in the neutral card */
-.accent-bg p {
-    color: var(--color-primary-accent); /* Highlight the number with the primary accent color */
-    font-weight: 700; 
+
+.stat-card h3 {
+    color: var(--color-text-dark);
+    font-weight: 400; /* Lighter weight for the title */
+    opacity: 0.9;
+    margin-bottom: 10px; 
+    margin-top: 0; 
+    font-size: 1em;
+}
+
+.stat-card p {
+    color: var(--color-primary-accent);
+    font-weight: 700; /* Bold weight for the number */
+    font-size: 3.0em; 
+    line-height: 1.1; 
+    margin: 0;
+}
+
+.accent-bg {
+    border: 1px solid var(--color-neutral-bg); 
 }
 
 
@@ -119,21 +128,19 @@
 
 .small-chart {
     grid-column: span 1;
-    /* Ensure enough min-height for the chart and legend */
     min-height: 500px; 
-    display: flex; /* Use flexbox to organize content vertically */
+    display: flex;
     flex-direction: column;
-    /* justify-content: space-between; Push chart up, legend down */
 }
 
 /* Styles for the Custom Donut Chart Legend */
 .donut-legend-wrapper {
     display: flex;
-    flex-direction: column; /* Stack legend items vertically */
-    gap: 10px; /* Space between legend items */
-    margin-top: 20px; /* Space between chart and legend */
-    align-items: flex-start; /* Align items to the left within the wrapper */
-    padding-left: 10px; /* Indent legend slightly */
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+    align-items: flex-start;
+    padding-left: 10px;
 }
 
 .donut-legend-item {
@@ -146,10 +153,10 @@
 .donut-legend-color-box {
     width: 16px;
     height: 16px;
-    border-radius: 4px; /* Slight rounded corners */
+    border-radius: 4px;
     margin-right: 8px;
-    flex-shrink: 0; /* Prevent box from shrinking */
-    border: 1px solid var(--color-neutral-bg); /* Subtle border for clarity */
+    flex-shrink: 0;
+    border: 1px solid var(--color-neutral-bg);
 }
 
 .donut-legend-name {
@@ -158,10 +165,56 @@
 }
 
 .donut-legend-value {
-    color: var(--color-text-muted); /* Muted color for the value */
+    color: var(--color-text-muted);
     font-size: 0.85em;
 }
 
+/* Styles for the Custom Donut Chart Tooltip */
+.custom-tooltip {
+    background-color: white;
+    border: 1px solid var(--color-neutral-bg, #E0E0E0);
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.custom-tooltip .label {
+    margin: 0;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.custom-tooltip .intro {
+    margin: 5px 0 0 0;
+    color: var(--color-text-muted);
+    font-size: 0.9em;
+}
+
+
+.chart-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.legend-chip {
+  background: var(--color-card-bg);
+  border: 1px solid #E7E9F2;
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  color: #4F5566;
+  font-weight: 500;
+}
+
+.legend-swatch {
+  width: 16px;
+  height: 8px;
+  border-radius: 4px;
+}
 
 /* Responsive Adjustments for Mobile */
 @media (max-width: 900px) {
@@ -178,3 +231,4 @@
         grid-column: span 1;
     }
 }
+

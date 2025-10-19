@@ -6,42 +6,71 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 
-// Mock data for the Line Chart
-const mockWeeklyActivityData = [
-    { name: 'Mon', Duration: 60, Calories: 500 },
-    { name: 'Tue', Duration: 45, Calories: 400 },
-    { name: 'Wed', Duration: 75, Calories: 650 },
-    { name: 'Thu', Duration: 50, Calories: 480 },
-    { name: 'Fri', Duration: 90, Calories: 800 },
-    { name: 'Sat', Duration: 120, Calories: 1100 },
-    { name: 'Sun', Duration: 30, Calories: 250 },
-];
+
+// Utility function to convert total minutes to hours and minutes
+const toHoursAndMinutes = (totalMinutes) => {
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    
+    if (hours > 0) {
+        return `${hours} hr ${minutes} min`;
+    }
+    return `${minutes} min`;
+};
+
+
+// Custom Tooltip Component for Donut Chart
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    const dataEntry = payload[0];
+    const durationInMin = dataEntry.value;
+    const durationFormatted = toHoursAndMinutes(durationInMin);
+    const exerciseName = dataEntry.name;
+    const color = dataEntry.color;
+
+    return (
+      <div className="custom-tooltip">
+        <p className="label" style={{ color: color, fontWeight: 'bold' }}>
+          {exerciseName}: {durationFormatted}
+        </p>
+        {/* <p className="intro">Total: {durationInMin} min</p> */}
+      </div>
+    );
+  }
+
+  return null;
+};
 
 // Define a simple, clean, monochromatic blue/purple palette
 const ACCENT_COLOR_PRIMARY = '#5B53D0'; // Deep Blue/Violet for main elements
-const ACCENT_COLOR_SECONDARY = '#A39EF8'; // Lighter Violet for secondary elements
+const ACCENT_COLOR_SECONDARY = '#ff0073'; // Vibrant Pink for highlights
+const COLOR_HIGH_CONTRAST = '#FF8C00'; // Dark Orange for high contrast elements
 const NEUTRAL_COLOR_LIGHT = '#E0E0E0'; // Light grey for backgrounds/neutral elements
+const COLOR_DURATION = ACCENT_COLOR_PRIMARY; // Use primary for Duration
 
 // CORRECTED CHART_COLORS for a monochromatic palette
 const CHART_COLORS = [
-    ACCENT_COLOR_PRIMARY,          // Deepest Blue for largest slice
-    ACCENT_COLOR_SECONDARY,        // Lighter Blue/Violet
-    '#D7D4F7',                     // Even lighter violet
-    NEUTRAL_COLOR_LIGHT            // A very light grey/violet for smallest slices or background
+    ACCENT_COLOR_PRIMARY,         // Primary: Deep Blue/Violet
+    COLOR_HIGH_CONTRAST,         // High Contrast: Dark Orange
+    ACCENT_COLOR_SECONDARY,      // Secondary: Vibrant Pink
+    '#B0E0E6',                  // Tertiary: Light Powder Blue
+    NEUTRAL_COLOR_LIGHT         // Light Grey
 ];
-
 
 // Custom Legend component for the Donut Chart
 const CustomDonutChartLegend = ({ payload }) => {
   return (
     <div className="donut-legend-wrapper">
-      {payload.map((entry, index) => (
+      {payload.map((entry, index) => {
+        const durationFormatted = toHoursAndMinutes(entry.value);
+        return (
         <div key={`item-${index}`} className="donut-legend-item">
           <span className="donut-legend-color-box" style={{ backgroundColor: entry.color }}></span>
           <span className="donut-legend-name">{entry.name}</span>
-          <span className="donut-legend-value">{entry.value} min</span>
+          <span className="donut-legend-value">{entry.value}</span>
         </div>
-      ))}
+      );
+      })}
     </div>
   );
 };
@@ -49,37 +78,75 @@ const CustomDonutChartLegend = ({ payload }) => {
 
 const Statistics = ({ currentUser }) => {
   const [data, setData] = useState(null);
+  const [weeklyData, setWeeklyData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingWeekly, setLoadingWeekly] = useState(true);
 
   useEffect(() => {
-    const url = `http://localhost:5050/stats/${currentUser}`;
-    axios.get(url)
+    let statsLoaded = false;
+    let trendLoaded = false;
+    
+    // Function to check if all data is loaded
+    const checkComplete = () => {
+        if (statsLoaded && trendLoaded) {
+            setLoading(false);
+            setLoadingWeekly(false);
+        }
+    };
+
+    // 1. Fetch Aggregated Stats (for Donut Chart and Metrics)
+    const statsUrl = `http://localhost:5050/stats/${currentUser}`;
+    axios.get(statsUrl)
       .then(response => {
         const currentUserStats = response.data.stats.find(item => item.username === currentUser);
         setData(currentUserStats);
       })
       .catch(error => {
-        console.error('There was an error fetching the data!', error);
+        console.error('There was an error fetching aggregated stats:', error);
       })
       .finally(() => {
-        setLoading(false);
+        statsLoaded = true;
+        checkComplete();
       });
+
+// 2. Fetch Weekly Trend Data (for Line Chart)
+    const trendUrl = `http://localhost:5050/stats/daily_trend/${currentUser}`;
+    axios.get(trendUrl)
+        .then(response => {
+            setWeeklyData(response.data.trend);
+        })
+        .catch(error => {
+            console.error('Error fetching weekly trend:', error);
+        })
+        .finally(() => {
+            trendLoaded = true;
+            checkComplete();
+        });
+
   }, [currentUser]);
-
-
-  if (loading) {
+  
+if (loading || loadingWeekly) {
     return <div className="stats-container"><p>Loading statistics...</p></div>;
   }
 
   const exerciseData = data ? data.exercises : [];
   
   const totalDuration = exerciseData.reduce((sum, item) => sum + item.totalDuration, 0);
+  const totalDurationFormatted = toHoursAndMinutes(totalDuration);
   const totalExerciseTypes = exerciseData.length;
 
   const distributionData = exerciseData.map(item => ({
     name: item.exerciseType,
     value: item.totalDuration,
   }));
+
+  // Find the top exercise
+  const topExercise = distributionData.length > 0 
+    ? distributionData.reduce((prev, current) => (prev.value > current.value) ? prev : current)
+    : { name: 'N/A', value: 0 };
+  
+  const topExerciseDurationFormatted = toHoursAndMinutes(topExercise.value);
+
 
   return (
     <div className="stats-container">
@@ -92,34 +159,52 @@ const Statistics = ({ currentUser }) => {
           <div className="stats-header-cards">
             {/* Card 1: clear text colors for visibility */}
             <div className="stat-card primary-bg">
-              <h3>Total Duration</h3>
-              <p>{totalDuration} min</p>
+              <h3>Total Active Time</h3>
+              <p>{totalDurationFormatted}</p>
             </div>
             {/* Card 2: clear text colors for visibility */}
             <div className="stat-card secondary-bg">
-              <h3>Total Exercise Types</h3>
+              <h3>Total Number of Exercises</h3>
               <p>{totalExerciseTypes}</p>
             </div>
             {/* Card 3: styling with dark text and primary accent for value */}
             <div className="stat-card accent-bg">
-              <h3>Avg. Daily Calories (Mock)</h3>
-              <p>450 kcal</p>
+              <h3>Top Exercise</h3>
+              <p>{topExercise.name} <span style={{fontSize: '0.6em', opacity: 0.8, fontWeight: 400}}>({topExerciseDurationFormatted})</span></p>
             </div>
           </div>
 
           <div className="charts-grid">
             {/* Weekly Activity Trend (Line Chart) */}
             <div className="chart-card wide-chart">
-              <h3>Weekly Activity Trend (Time in min)</h3>
+              <h3>Total Weekly Activity Trend</h3>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={mockWeeklyActivityData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={NEUTRAL_COLOR_LIGHT} /> {/* Use NEUTRAL_COLOR_LIGHT here */}
+                <LineChart data={weeklyData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={NEUTRAL_COLOR_LIGHT} />
                   <XAxis dataKey="name" stroke="#555" />
                   <YAxis stroke="#555" />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="Duration" stroke={ACCENT_COLOR_PRIMARY} strokeWidth={3} />
-                  <Line type="monotone" dataKey="Calories" stroke={ACCENT_COLOR_SECONDARY} strokeWidth={3} />
-                  <Legend wrapperStyle={{ paddingTop: '10px' }}/>
+
+                <Tooltip 
+                formatter={(value, name) => {
+                  if (name === 'Active Time' && typeof value === 'number') {
+                    return toHoursAndMinutes(value);
+                  }
+                  return value;
+                }}
+              />
+
+              <Legend wrapperStyle={{ paddingTop: '10px' }}/>
+
+                {/* Solid primary line for Duration */}
+                <Line
+                  type="monotone"
+                  dataKey="Duration"
+                  name="Active Time"
+                  stroke={COLOR_DURATION}
+                  strokeWidth={3}
+                  dot={{ r: 3 }}
+                  activeDot={{ r: 5 }}
+                />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -135,21 +220,21 @@ const Statistics = ({ currentUser }) => {
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    innerRadius={40} 
-                    outerRadius={60} 
+                    innerRadius={30} 
+                    outerRadius={50} 
                     fill={ACCENT_COLOR_PRIMARY}
                     // paddingAngle={3} 
-                    labelLine={false} // Hide the line connecting labels
+                    labelLine={false} 
                     
                     
-                    // Use the built-in label component which calculates optimal positions
+                    
                     label={({ 
                         cx, cy, midAngle, innerRadius, outerRadius, value, percent, index 
                     }) => {
                         // Calculate position for external label (pushed slightly out)
                         const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-                        const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180)) * 1.5;
-                        const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180)) * 1.5;
+                        const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180)) * 1.45;
+                        const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180)) * 1.45;
 
                         // Return text element for the label
                         return (
@@ -173,7 +258,7 @@ const Statistics = ({ currentUser }) => {
                   
                   {/*Add 'cursor={{ stroke: 'none' }}' to prevent the tooltip from highlighting the whole chart area */}
                   <Tooltip 
-                      formatter={(value) => [`${value} min`, 'Total Duration']} 
+                      content={<CustomTooltip />} 
                       cursor={{ fill: 'transparent' }} // Prevents dark overlay on hover
                   />
                   
@@ -182,7 +267,7 @@ const Statistics = ({ currentUser }) => {
                     layout="vertical"
                     verticalAlign="bottom" 
                     align="center" 
-                    wrapperStyle={{ paddingTop: '20px' }} 
+                    wrapperStyle={{ paddingTop: '10px' }} 
                   />
                 </PieChart>
               </ResponsiveContainer>
