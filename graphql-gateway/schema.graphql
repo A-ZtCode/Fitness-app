@@ -1,0 +1,64 @@
+# This file will be generated from your merged schema
+# It's used for validation purposes
+
+type Query {
+  _empty: String
+  exercises: [Exercise!]!
+  exercise(id: ID!): Exercise
+  analytics: AnalyticsQuery!
+}
+
+type Mutation {
+  _empty: String
+  addExercise(input: AddExerciseInput!): Exercise!
+  updateExercise(id: ID!, input: UpdateExerciseInput!): Exercise!
+  deleteExercise(id: ID!): String!
+}
+
+type Exercise {
+  id: ID!
+  username: String!
+  exerciseType: String!
+  description: String
+  duration: Int!
+  date: String!
+  createdAt: String
+  updatedAt: String
+}
+
+input AddExerciseInput {
+  username: String!
+  exerciseType: String!
+  description: String
+  duration: Int!
+  date: String!
+}
+
+input UpdateExerciseInput {
+  username: String!
+  exerciseType: String!
+  description: String
+  duration: Int!
+  date: String!
+}
+
+type ExerciseStats {
+  exerciseType: String!
+  totalDuration: Int!
+}
+
+type UserStats {
+  username: String!
+  exercises: [ExerciseStats!]!
+}
+
+type WeeklyStats {
+  exerciseType: String!
+  totalDuration: Int!
+}
+
+type AnalyticsQuery {
+  allStats: [UserStats!]!
+  userStats(username: String!): [UserStats!]!
+  weeklyStats(username: String!, startDate: String!, endDate: String!): [WeeklyStats!]!
+}

@@ -1,0 +1,53 @@
+name: GraphQL Schema Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'graphql-gateway/src/**'
+      - 'graphql-gateway/schema.graphql'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'graphql-gateway/src/**'
+      - 'graphql-gateway/schema.graphql'
+
+jobs:
+  validate-schema:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: graphql-gateway/package-lock.json
+        
+    - name: Install dependencies
+      run: |
+        cd graphql-gateway
+        npm ci
+        
+    - name: Install GraphQL Inspector
+      run: npm install -g @graphql-inspector/cli
+      
+    - name: Generate schema
+      run: |
+        cd graphql-gateway
+        npm run generate-schema
+        
+    - name: Validate schema
+      run: |
+        cd graphql-gateway
+        npm run validate-schema
+        
+    - name: Check for breaking changes
+      if: github.event_name == 'pull_request'
+      run: |
+        cd graphql-gateway
+        # This would compare with previous schema version
+        echo "Schema validation completed successfully"

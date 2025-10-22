@@ -1,109 +1,172 @@
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
-import axios from "axios";
 import { ApolloServer } from "@apollo/server";
 import { expressMiddleware } from "@apollo/server/express4";
 import { ApolloServerPluginLandingPageLocalDefault } from "@apollo/server/plugin/landingPage/default";
 
+// Import service components
+import { activityTypeDefs } from './src/services/activity/schema/index.js';
+import { analyticsTypeDefs } from './src/services/analytics/schema/index.js';
+import { activityResolvers } from './src/services/activity/resolvers/index.js';
+import { analyticsResolvers } from './src/services/analytics/resolvers/index.js';
+import { ActivityService } from './src/services/activity/datasource/activityService.js';
+import { AnalyticsService } from './src/services/analytics/datasource/analyticsService.js';
+import { config } from './src/config/index.js';
 
-const ACTIVITY_URL = process.env.ACTIVITY_URL || "http://activity-tracking:5300";
-
-/** ============ Schema ============ */
-const typeDefs = `#graphql
-  type Exercise {
-    id: ID!
-    username: String!
-    exerciseType: String!
-    description: String
-    duration: Int!
-    date: String!
-    createdAt: String
-    updatedAt: String
-  }
-
-  input AddExerciseInput {
-    username: String!
-    exerciseType: String!
-    description: String
-    duration: Int!
-    date: String!
-  }
-
-  input UpdateExerciseInput {
-    username: String!
-    exerciseType: String!
-    description: String
-    duration: Int!
-    date: String!
-  }
-
+/**
+ * GraphQL Schema Configuration
+ */
+const typeDefs = `
   type Query {
-    exercises: [Exercise!]!
-    exercise(id: ID!): Exercise
+    _empty: String
   }
-
+  
   type Mutation {
-    addExercise(input: AddExerciseInput!): Exercise!
-    updateExercise(id: ID!, input: UpdateExerciseInput!): Exercise!
-    deleteExercise(id: ID!): String!
+    _empty: String
   }
+  
+  ${activityTypeDefs}
+  ${analyticsTypeDefs}
 `;
 
-/** ============ Resolvers (REST -> GraphQL proxy) ============ */
+/**
+ * GraphQL Resolvers Configuration
+ */
 const resolvers = {
   Query: {
-    exercises: async () => {
-      const { data } = await axios.get(`${ACTIVITY_URL}/exercises`);
-      return data.map(e => ({ id: e._id, ...e }));
-    },
-    exercise: async (_p, { id }) => {
-      const { data } = await axios.get(`${ACTIVITY_URL}/exercises/${id}`);
-      return { id: data._id, ...data };
-    }
+    ...activityResolvers.Query,
+    ...analyticsResolvers.Query,
   },
   Mutation: {
-    addExercise: async (_p, { input }) => {
-      await axios.post(`${ACTIVITY_URL}/exercises/add`, input);
-      const all = await axios.get(`${ACTIVITY_URL}/exercises`);
-      const last = all.data[all.data.length - 1];
-      return { id: last._id, ...last };
-    },
-    updateExercise: async (_p, { id, input }) => {
-      await axios.put(`${ACTIVITY_URL}/exercises/update/${id}`, input);
-      const { data } = await axios.get(`${ACTIVITY_URL}/exercises/${id}`);
-      return { id: data._id, ...data };
-    },
-    deleteExercise: async (_p, { id }) => {
-      const { data } = await axios.delete(`${ACTIVITY_URL}/exercises/${id}`);
-      return data.message || "Deleted";
-    }
+    ...activityResolvers.Mutation,
+  },
+  AnalyticsQuery: {
+    ...analyticsResolvers.AnalyticsQuery,
   }
 };
 
-async function start() {
-  const app = express();
-  const server = new ApolloServer({ typeDefs, resolvers, introspection: true,
-    plugins: [
-      ApolloServerPluginLandingPageLocalDefault({
-        embed: true,      
-        includeCookies: false
-      })
-    ]}
-  );
-  await server.start();
+/**
+ * Service Instances
+ */
+const activityService = new ActivityService();
+const analyticsService = new AnalyticsService();
 
-  const allowed = (process.env.CORS_ORIGINS || "http://localhost:3000").split(",");
-  app.use("/graphql",
-    cors({ origin: allowed, credentials: true }),
-    bodyParser.json(),
-    expressMiddleware(server)
-  );
-  app.get("/", (_req, res) => res.redirect("/graphql"));
-  const port = process.env.PORT || 4000;
-  app.listen(port, () => {
-    console.log(`🚀 GraphQL Gateway running at http://localhost:${port}/graphql`);
-    console.log(`Using ACTIVITY_URL = ${ACTIVITY_URL}`);
+/**
+ * Health Check Handler
+ */
+const handleHealthCheck = async (req, res) => {
+  try {
+    const [activityHealth, analyticsHealth] = await Promise.all([
+      activityService.healthCheck(),
+      analyticsService.healthCheck()
+    ]);
+    
+    const overallStatus = (activityHealth.status === 'healthy' && analyticsHealth.status === 'healthy') 
+      ? 'healthy' : 'degraded';
+    
+    const statusCode = overallStatus === 'healthy' ? 200 : 503;
+    
+    res.status(statusCode).json({
+      status: overallStatus,
+      services: {
+        activity: activityHealth,
+        analytics: analyticsHealth
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Health check error:', error);
+    res.status(503).json({
+      status: 'unhealthy',
+      error: 'Health check failed',
+      timestamp: new Date().toISOString()
+    });
+  }
+};
+
+/**
+ * GraphQL Error Formatter
+ */
+const formatGraphQLError = (error) => {
+  console.error('GraphQL Error:', error);
+  return {
+    message: error.message,
+    locations: error.locations,
+    path: error.path,
+    timestamp: new Date().toISOString()
+  };
+};
+
+/**
+ * Graceful Shutdown Handler
+ */
+const setupGracefulShutdown = (server) => {
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down gracefully');
+    server.stop().then(() => {
+      console.log('GraphQL server stopped');
+      process.exit(0);
+    });
   });
+};
+
+/**
+ * Main Server Startup Function
+ */
+async function start() {
+  try {
+    const app = express();
+    
+    // Health check endpoint
+    app.get('/health', handleHealthCheck);
+
+    // Create Apollo Server
+    const server = new ApolloServer({ 
+      typeDefs, 
+      resolvers, 
+      introspection: true,
+      plugins: [
+        ApolloServerPluginLandingPageLocalDefault({
+          embed: true,      
+          includeCookies: false
+        })
+      ],
+      formatError: formatGraphQLError
+    });
+    
+    await server.start();
+
+    // Configure GraphQL endpoint
+    app.use("/graphql",
+      cors({ origin: config.corsOrigins, credentials: true }),
+      bodyParser.json(),
+      expressMiddleware(server)
+    );
+    
+    // Redirect root to GraphQL playground
+    app.get("/", (_req, res) => res.redirect("/graphql"));
+    
+    // Start server
+    app.listen(config.port, () => {
+      console.log(`🚀 GraphQL Gateway running at http://localhost:${config.port}/graphql`);
+      console.log(`📊 Health check available at http://localhost:${config.port}/health`);
+      console.log(`🔗 Activity Service: ${config.activityUrl}`);
+      console.log(`📈 Analytics Service: ${config.analyticsUrl}`);
+      console.log(`Environment: ${config.nodeEnv}`);
+    });
+
+    // Setup graceful shutdown
+    setupGracefulShutdown(server);
+
+  } catch (error) {
+    console.error('Failed to start GraphQL Gateway:', error);
+    process.exit(1);
+  }
 }
-start();
+
+// Start the server
+start().catch(error => {
+  console.error('Startup error:', error);
+  process.exit(1);
+});
