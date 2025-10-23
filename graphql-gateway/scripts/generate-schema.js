@@ -19,8 +19,8 @@ const mergedSchema = `#graphql
     _empty: String
   }
   
-  ${activityTypeDefs}
-  ${analyticsTypeDefs}
+  ${activityTypeDefs.replace('#graphql', '')}
+  ${analyticsTypeDefs.replace('#graphql', '')}
 `;
 
 // Write to schema.graphql file

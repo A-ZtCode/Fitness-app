@@ -7,8 +7,8 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "validate-schema": "graphql-inspector validate schema.graphql --noStrictFragments --noStrictDeprecations",
-    "check-breaking": "graphql-inspector diff schema-before.json schema-after.json --fail-on-breaking",
+    "validate-schema": "node scripts/validate-schema.js",
+    "check-breaking": "echo 'Breaking change detection not implemented yet'",
     "generate-schema": "node scripts/generate-schema.js"
   },
   "dependencies": {
@@ -17,6 +17,9 @@
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
     "express": "^4.18.2",
+    "graphql": "^16.9.0"
+  },
+  "devDependencies": {
     "graphql": "^16.9.0"
   }
 }

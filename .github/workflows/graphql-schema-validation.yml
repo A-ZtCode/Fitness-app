@@ -31,9 +31,6 @@ jobs:
       run: |
         cd graphql-gateway
         npm ci
-        
-    - name: Install GraphQL Inspector
-      run: npm install -g @graphql-inspector/cli
       
     - name: Generate schema
       run: |

@@ -7,7 +7,7 @@
     _empty: String
   }
   
-  #graphql
+  
   type Exercise {
     id: ID!
     username: String!
@@ -46,7 +46,7 @@
     deleteExercise(id: ID!): String!
   }
 
-  #graphql
+  
   type ExerciseStats {
     exerciseType: String!
     totalDuration: Int!
