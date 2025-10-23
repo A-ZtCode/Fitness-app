@@ -49,5 +49,5 @@ jobs:
       if: github.event_name == 'pull_request'
       run: |
         cd graphql-gateway
-        # This would compare with previous schema version
-        echo "Schema validation completed successfully"
+        # Compare schema files to detect breaking changes
+        npm run check-breaking
