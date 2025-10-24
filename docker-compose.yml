@@ -69,11 +69,13 @@ services:
     environment:
       - NODE_ENV=production
       - ACTIVITY_URL=http://activity-tracking:5300
+      - ANALYTICS_URL=http://analytics:5050
       - CORS_ORIGINS=http://localhost:3000
     ports:
       - "4000:4000"
     depends_on:
       - activity-tracking
+      - analytics
     networks:
       - app-network
 

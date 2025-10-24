@@ -1,0 +1,79 @@
+#graphql
+  type Query {
+    _empty: String
+  }
+  
+  type Mutation {
+    _empty: String
+  }
+  
+  
+  type Exercise {
+    id: ID!
+    username: String!
+    exerciseType: String!
+    description: String
+    duration: Int!
+    date: String!
+    createdAt: String
+    updatedAt: String
+  }
+
+  input AddExerciseInput {
+    username: String!
+    exerciseType: String!
+    description: String
+    duration: Int!
+    date: String!
+  }
+
+  input UpdateExerciseInput {
+    username: String!
+    exerciseType: String!
+    description: String
+    duration: Int!
+    date: String!
+  }
+
+  extend type Query {
+    exercises: [Exercise!]!
+    exercise(id: ID!): Exercise
+  }
+
+  extend type Mutation {
+    addExercise(input: AddExerciseInput!): Exercise!
+    updateExercise(id: ID!, input: UpdateExerciseInput!): Exercise!
+    deleteExercise(id: ID!): String!
+  }
+
+  
+  type ExerciseStats {
+    exerciseType: String!
+    totalDuration: Int!
+  }
+
+  type UserStats {
+    username: String!
+    exercises: [ExerciseStats!]!
+  }
+
+  type WeeklyStats {
+    exerciseType: String!
+    totalDuration: Int!
+  }
+
+  type AnalyticsQuery {
+    # Get all user statistics
+    allStats: [UserStats!]!
+    
+    # Get statistics for a specific user
+    userStats(username: String!): [UserStats!]!
+    
+    # Get weekly statistics for a user within date range
+    weeklyStats(username: String!, startDate: String!, endDate: String!): [WeeklyStats!]!
+  }
+
+  extend type Query {
+    analytics: AnalyticsQuery!
+  }
+
