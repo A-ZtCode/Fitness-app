@@ -29,7 +29,6 @@ const CustomTooltip = ({ active, payload, label }) => {
         <p className="label" style={{ color: color, fontWeight: 'bold' }}>
           {exerciseName}: {durationFormatted}
         </p>
-        {/* <p className="intro">Total: {durationInMin} min</p> */}
       </div>
     );
   }
@@ -44,7 +43,7 @@ const COLOR_HIGH_CONTRAST = '#FF8C00'; // Dark Orange for high contrast elements
 const NEUTRAL_COLOR_LIGHT = '#E0E0E0'; // Light grey for backgrounds/neutral elements
 const COLOR_DURATION = ACCENT_COLOR_PRIMARY; // Use primary for Duration
 
-// CORRECTED CHART_COLORS for a monochromatic palette
+// CHART_COLORS for a monochromatic palette
 const CHART_COLORS = [
     ACCENT_COLOR_PRIMARY,         // Primary: Deep Blue/Violet
     COLOR_HIGH_CONTRAST,         // High Contrast: Dark Orange
@@ -237,7 +236,6 @@ if (loading) {
                     ))}
                   </Pie>
                   
-                  {/*Add 'cursor={{ stroke: 'none' }}' to prevent the tooltip from highlighting the whole chart area */}
                   <Tooltip 
                       content={<CustomTooltip />} 
                       cursor={{ fill: 'transparent' }} // Prevents dark overlay on hover

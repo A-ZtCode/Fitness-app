@@ -32,3 +32,6 @@ yarn-error.log*
 
 # Misc
 *.md
+
+# Settings
+settings.json

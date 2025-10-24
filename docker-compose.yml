@@ -83,5 +83,4 @@ networks:
 
 volumes:
   mongodbdata:
-  grafana_data:
 
