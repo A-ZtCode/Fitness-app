@@ -4,7 +4,8 @@ import com.authservice.auth.model.User;
 import com.authservice.auth.model.AuthResponseDTO;
 import com.authservice.auth.model.ErrorResponseDTO;
 import com.authservice.auth.repository.UserRepository;
-import com.authservice.auth.util.JwtService;
+import com.authservice.auth.service.JwtService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
