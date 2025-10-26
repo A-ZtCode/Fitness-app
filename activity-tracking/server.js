@@ -3,15 +3,35 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const config = require('./config.json');
 require('dotenv').config();
+const jwt = require('jsonwebtoken');
 
 const app = express();
 const port = process.env.PORT || 5300;
 const uri = process.env.MONGODB_URI;
 const mongoUri = config.mongoUri;
+const JWT_SECRET_KEY = 'example-long-random-super-secret-key';
 
 // Middleware setup
 app.use(cors());
 app.use(express.json());
+
+// JWT verification middleware
+function authenticateJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+  const token = authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Missing token'})
+  };
+
+  jwt.verify(token, JWT_SECRET_KEY, (err, user) => {
+    if (err) {
+      return res.status(401).json({ error: 'Invalid or expired token'})
+    }
+    req.user = user;
+    next();
+  })
+}
 
 // MongoDB connection
 mongoose
@@ -28,7 +48,7 @@ connection.on('error', (error) => {
 
 // Routes
 const exercisesRouter = require('./routes/exercises');
-app.use('/exercises', exercisesRouter);
+app.use('/exercises', authenticateJWT, exercisesRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
