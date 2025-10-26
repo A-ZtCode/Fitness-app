@@ -15,6 +15,7 @@ import Footer from "./components/footer.js";
 import Login from "./components/Login/login.js";
 import Signup from "./components/Signup/signup.js";
 import Journal from "./components/Journal/journal.js";
+import Settings from "./components/Settings/settings.js";
 import logo from "./img/CFG_logo.png"; // Update the path to your logo file
 
 function App() {
@@ -151,6 +152,10 @@ function App() {
                   <Navigate to="/login" />
                 )
               }
+            />
+            <Route
+              path="/settings"
+              element={isLoggedIn ? <Settings /> : <Navigate to="/login" />}
             />
           </Routes>
         </div>
