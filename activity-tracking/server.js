@@ -9,7 +9,7 @@ const app = express();
 const port = process.env.PORT || 5300;
 const uri = process.env.MONGODB_URI;
 const mongoUri = config.mongoUri;
-const JWT_SECRET_KEY = 'example-long-random-super-secret-key';
+const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
 
 // Middleware setup
 app.use(cors());

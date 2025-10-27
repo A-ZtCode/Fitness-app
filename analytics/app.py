@@ -19,7 +19,7 @@ CORS(app, resources={r"/*": {"origins": "*"}},
 load_dotenv()
 mongo_uri = os.getenv('MONGO_URI')
 mongo_db = os.getenv('MONGO_DB')
-JWT_SECRET = os.getenv('JWT_SECRET_KEY')
+JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
 
 client = MongoClient(mongo_uri)
 db = client[mongo_db]
@@ -34,7 +34,7 @@ def token_required(f):
         
         try:
             token = auth_header.split(' ')[1]
-            decoded_token = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+            decoded_token = jwt.decode(token, JWT_SECRET_KEY, algorithms=['HS256'])
             request.user = decoded_token
         except jwt.ExpiredSignatureError:
             return jsonify({'error': 'Token expired'}), 401

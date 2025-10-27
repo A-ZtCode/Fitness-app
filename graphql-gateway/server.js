@@ -1,3 +1,5 @@
+import dotenv from "dotenv";
+dotenv.config();
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
@@ -15,7 +17,7 @@ import { ActivityService } from './src/services/activity/datasource/activityServ
 import { AnalyticsService } from './src/services/analytics/datasource/analyticsService.js';
 import { config } from './src/config/index.js';
 
-const JWT_SECRET = 'example-long-random-super-secret-key';
+const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
 
 /**
  * Helper function to verify JWT
@@ -27,7 +29,7 @@ function verifyJWT(authHeader) {
   
   const token = authHeader.split(' ')[1];
   try {
-    return jwt.verify(token, JWT_SECRET);
+    return jwt.verify(token, JWT_SECRET_KEY);
   } catch (err) {
     throw new Error('Invalid or expired token');
   }
