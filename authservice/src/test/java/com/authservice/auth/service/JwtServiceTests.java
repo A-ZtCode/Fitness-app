@@ -4,13 +4,18 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@SpringBootTest
 public class JwtServiceTests {
     private JwtService jwtService;
-    private final String TEST_SECRET = "test-secret-key-12345678901234567890123456789012";
+
+    @Value("${jwt.secret.key}")
+    private String TEST_SECRET;
     private final String TEST_USER = "test@test.com";
 
     @BeforeEach
