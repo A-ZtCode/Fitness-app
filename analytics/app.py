@@ -44,8 +44,14 @@ def token_required(f):
         return f(*args, **kwargs)
     return decorated
 
+# Public health check endpoint
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify(status='healthy', timestamp=datetime.now().isoformat()), 200
+
 
 @app.route('/')
+@token_required
 def index():
     exercises = db.exercises.find()
     exercises_list = list(exercises)

@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
+import jwt from "jsonwebtoken";
 import { ApolloServer } from "@apollo/server";
 import { expressMiddleware } from "@apollo/server/express4";
 import { ApolloServerPluginLandingPageLocalDefault } from "@apollo/server/plugin/landingPage/default";
@@ -13,6 +14,24 @@ import { analyticsResolvers } from './src/services/analytics/resolvers/index.js'
 import { ActivityService } from './src/services/activity/datasource/activityService.js';
 import { AnalyticsService } from './src/services/analytics/datasource/analyticsService.js';
 import { config } from './src/config/index.js';
+
+const JWT_SECRET = 'example-long-random-super-secret-key';
+
+/**
+ * Helper function to verify JWT
+ */
+function verifyJWT(authHeader) {
+  if (!authHeader?.startsWith('Bearer ')) {
+    throw new Error('Missing or malformed Authorization header')
+  }
+  
+  const token = authHeader.split(' ')[1];
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch (err) {
+    throw new Error('Invalid or expired token');
+  }
+}
 
 /**
  * GraphQL Schema Configuration
@@ -141,7 +160,13 @@ async function start() {
     app.use("/graphql",
       cors({ origin: config.corsOrigins, credentials: true }),
       bodyParser.json(),
-      expressMiddleware(server)
+      expressMiddleware(server, {
+        context: async ({req}) => {
+          const authHeader = req.headers.authorization;
+          const jwtPayload = verifyJWT(authHeader);
+          return { authHeader, jwtPayload }
+        }
+      })
     );
     
     // Redirect root to GraphQL playground

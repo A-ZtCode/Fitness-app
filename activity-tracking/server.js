@@ -46,6 +46,11 @@ connection.on('error', (error) => {
   console.error("MongoDB connection error:", error);
 });
 
+// Public health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
+
 // Routes
 const exercisesRouter = require('./routes/exercises');
 app.use('/exercises', authenticateJWT, exercisesRouter);
