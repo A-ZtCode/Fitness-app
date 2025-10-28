@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
+import rateLimit from "express-rate-limit";
 import { ApolloServer } from "@apollo/server";
 import { expressMiddleware } from "@apollo/server/express4";
 import { ApolloServerPluginLandingPageLocalDefault } from "@apollo/server/plugin/landingPage/default";
@@ -51,6 +52,28 @@ const resolvers = {
  */
 const activityService = new ActivityService();
 const analyticsService = new AnalyticsService();
+
+/**
+ * Rate Limiting Configuration
+ */
+const graphqlRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200, // limit each IP to 200 requests per windowMs
+  message: {
+    error: 'Too many requests from this IP, please try again later.',
+    retryAfter: '15 minutes'
+  },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  handler: (req, res) => {
+    res.status(429).json({
+      error: 'Rate limit exceeded',
+      message: 'Too many requests from this IP, please try again later.',
+      retryAfter: '15 minutes',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
 
 /**
  * Health Check Handler
@@ -137,8 +160,9 @@ async function start() {
     
     await server.start();
 
-    // Configure GraphQL endpoint
+    // Configure GraphQL endpoint with rate limiting
     app.use("/graphql",
+      graphqlRateLimit, // Apply rate limiting first
       cors({ origin: config.corsOrigins, credentials: true }),
       bodyParser.json(),
       expressMiddleware(server)
