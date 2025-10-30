@@ -13,6 +13,7 @@ public class User {
     private String firstName;
     private String lastName;
     private String password;
+    private boolean verified = false;
 
     public User() {
     }
@@ -72,6 +73,14 @@ public class User {
 
     public void setLastName(String lastName) {
         this.lastName = lastName;
+    }
+
+    public boolean isVerified() {
+        return verified;
+    }
+
+    public void setVerified(boolean verified) {
+        this.verified = verified;
     }
 
 }
