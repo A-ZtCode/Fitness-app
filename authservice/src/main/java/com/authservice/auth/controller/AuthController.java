@@ -8,6 +8,7 @@ import com.authservice.auth.dto.SignUpRequestDTO;
 import com.authservice.auth.dto.UpdateUserRequestDTO;
 import com.authservice.auth.dto.UserResponseDTO;
 import com.authservice.auth.repository.UserRepository;
+import com.authservice.auth.service.EmailService;
 import com.authservice.auth.service.JwtService;
 import com.authservice.auth.util.ValidationUtils;
 
@@ -31,6 +32,9 @@ public class AuthController {
 
     @Autowired
     private JwtService jwtService;
+
+    @Autowired
+    private EmailService emailService;
 
     @GetMapping("/user")
     public ResponseEntity<?> getUserByEmail(@RequestParam("email") String email) {
@@ -97,7 +101,7 @@ public class AuthController {
             user.setFirstName(request.getFirstName());
             user.setLastName(request.getLastName());
             userRepository.save(user);
-            String jwt = jwtService.generateToken(email);
+            String jwt = jwtService.createUserToken(email);
             AuthResponseDTO response = new AuthResponseDTO(jwt, "User registered successfully!");
             return ResponseEntity.ok(response);
         } else {
@@ -124,4 +128,14 @@ public class AuthController {
             return ResponseEntity.badRequest().body(new ErrorResponseDTO("Email must be provided")); 
         }
     }
-}
+
+    @GetMapping("/verify")
+    public ResponseEntity<?> verifyEmail(@RequestParam String token) {
+        String userId = emailService.verifyEmailToken(token);
+        if (userId == null) {
+            return ResponseEntity.badRequest().body(new ErrorResponseDTO("Invalid or expired token"));
+        } else {
+            return ResponseEntity.ok("Email verified successfully for user ID: " + userId);
+        }
+    }
+} 

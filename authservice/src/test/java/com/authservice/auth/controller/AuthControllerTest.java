@@ -59,7 +59,7 @@ public class AuthControllerTest {
     @BeforeEach
     public void setUp() {
         MockitoAnnotations.openMocks(this);
-        when(jwtService.generateToken(any(String.class))).thenReturn(JWT);
+        when(jwtService.createUserToken(any(String.class))).thenReturn(JWT);
     }
 
     private SignUpRequestDTO createSignUpRequest(String email, String password) {

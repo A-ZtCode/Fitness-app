@@ -31,20 +31,20 @@ public class JwtServiceTests {
 
     @Test
     public void testGenerateToken_NotNull() {
-        String token = jwtService.generateToken(TEST_USER);
+        String token = jwtService.createUserToken(TEST_USER);
         assertNotNull(token);
     }
 
     @Test
     public void testGenerateToken_ValidSubject() {
-        String token = jwtService.generateToken(TEST_USER);
+        String token = jwtService.createUserToken(TEST_USER);
         Claims claims = parseToken(token);
         assertEquals(TEST_USER, claims.getSubject());
     }
 
     @Test
     public void testGenerateToken_SetsExpirationInFuture() {
-        String token = jwtService.generateToken(TEST_USER);
+        String token = jwtService.createUserToken(TEST_USER);
         Claims claims = parseToken(token);
         assertTrue(claims.getExpiration().getTime() > System.currentTimeMillis());
     }
