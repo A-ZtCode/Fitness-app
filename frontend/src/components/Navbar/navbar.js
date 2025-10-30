@@ -10,7 +10,6 @@ const NavbarComponent = ({ onLogout }) => {
   const location = useLocation(); // MN_scrum_13 - active tab colour
 
   const onNavigate = (route) => {
-    console.log("Navigating to:", route);
     switch (route) {
       case "TrackExercise":
         navigate("/trackExercise");
@@ -57,7 +56,7 @@ const NavbarComponent = ({ onLogout }) => {
               }`} // MN_scrum_13
               onClick={() => onNavigate("Journal")}
             >
-              Weekly Journal
+              Journal
             </Nav.Link>
             <Nav.Link
               className={`custom-nav-link ${

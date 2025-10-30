@@ -21,7 +21,6 @@ import logo from "./img/CFG_logo.png"; // Update the path to your logo file
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState("");
-
   const handleLogout = () => {
     setIsLoggedIn(false);
     setCurrentUser("");
@@ -155,7 +154,13 @@ function App() {
             />
             <Route
               path="/settings"
-              element={isLoggedIn ? <Settings /> : <Navigate to="/login" />}
+              element={
+                isLoggedIn ? (
+                  <Settings userEmail={currentUser} onLogout={handleLogout} />
+                ) : (
+                  <Navigate to="/login" />
+                )
+              }
             />
           </Routes>
         </div>
