@@ -12,6 +12,7 @@ import { expressMiddleware } from "@apollo/server/express4";
 import { ApolloServerPluginLandingPageLocalDefault } from "@apollo/server/plugin/landingPage/default";
 import { Registry, Counter, Histogram, collectDefaultMetrics } from "prom-client";
 import { createComplexityPlugin } from './src/middleware/complexityPlugin.js';
+import { ValidationError } from './src/utils/validation.js';
 
 // Import service components
 import { activityTypeDefs } from './src/services/activity/schema/index.js';
@@ -178,6 +179,20 @@ const handleHealthCheck = async (req, res) => {
  */
 const formatGraphQLError = (error) => {
   console.error('GraphQL Error:', error);
+  
+  // Handle ValidationError instances directly
+  if (error.originalError instanceof ValidationError) {
+    const validationError = error.originalError;
+    return {
+      message: validationError.message,
+      field: validationError.field,
+      code: validationError.code,
+      locations: error.locations,
+      path: error.path,
+      timestamp: new Date().toISOString()
+    };
+  }
+  
   return {
     message: error.message,
     locations: error.locations,
