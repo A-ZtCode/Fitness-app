@@ -38,7 +38,6 @@ public class AuthControllerTest {
     private static final String FIRST_NAME = "Jane";
     private static final String LAST_NAME = "Doe";
     private static final String USER_REGISTERED_MSG = "User registered successfully!";
-    private static final String USER_EXISTS_MSG = "User already exists - please log in";
     private static final String EMAIL_EXISTS_MSG = "Email already registered - please log in";
     private static final String USER_AUTHENTICATED_MSG = "User authenticated";
     private static final String INVALID_CREDENTIALS_MSG = "Email or password is incorrect - please try again";
