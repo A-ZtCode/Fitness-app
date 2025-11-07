@@ -8,6 +8,7 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
+import com.authservice.auth.exception.InvalidTokenException;
 import com.authservice.auth.model.User;
 
 @Service
@@ -36,12 +37,12 @@ public class EmailService {
         }
     }
 
-    public String verifyEmailToken(String token) {
+    public String extractUserIdFromVerificationToken(String token) {
         String userId;
         try {
             userId = jwtService.parseToken(token).getSubject();
         } catch (Exception e) {
-            throw new RuntimeException("Invalid or expired token");
+            throw new InvalidTokenException("Invalid or expired token", e);
         }
         return userId;
     }

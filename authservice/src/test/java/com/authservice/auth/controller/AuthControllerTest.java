@@ -1,6 +1,7 @@
 package com.authservice.auth.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -19,6 +20,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.Optional;
 
 import com.authservice.auth.dto.AuthResponseDTO;
+import com.authservice.auth.exception.InvalidTokenException;
 import com.authservice.auth.dto.ErrorResponseDTO;
 import com.authservice.auth.dto.SignUpRequestDTO;
 import com.authservice.auth.dto.LoginRequestDTO;
@@ -26,6 +28,7 @@ import com.authservice.auth.dto.UpdateUserRequestDTO;
 import com.authservice.auth.dto.UserResponseDTO;
 import com.authservice.auth.model.User;
 import com.authservice.auth.repository.UserRepository;
+import com.authservice.auth.service.EmailService;
 import com.authservice.auth.service.JwtService;
 
 public class AuthControllerTest {
@@ -52,6 +55,9 @@ public class AuthControllerTest {
 
     @Mock
     private JwtService jwtService;
+
+    @Mock 
+    private EmailService emailService;
 
     @InjectMocks
     private AuthController authController;
@@ -301,5 +307,18 @@ public class AuthControllerTest {
         assertEquals(USER_ID, user.getId());
         assertEquals(EMAIL, user.getEmail());
         assertEquals(PASSWORD, user.getPassword());
+    }
+
+    // Tests for verify
+    @Test
+    public void verifyEmail_whenTokenIsExpired_throwsInvalidTokenException() {
+        String expiredToken = "expired";
+        when(emailService.extractUserIdFromVerificationToken(expiredToken))
+            .thenThrow(new InvalidTokenException("Invalid or expired token"));
+
+        assertThrows(
+            InvalidTokenException.class, 
+            () -> authController.verifyEmail(expiredToken)
+        );
     }
 }

@@ -131,11 +131,16 @@ public class AuthController {
 
     @GetMapping("/verify")
     public ResponseEntity<?> verifyEmail(@RequestParam String token) {
-        String userId = emailService.verifyEmailToken(token);
-        if (userId == null) {
-            return ResponseEntity.badRequest().body(new ErrorResponseDTO("Invalid or expired token"));
-        } else {
-            return ResponseEntity.ok("Email verified successfully for user ID: " + userId);
+        String userId = emailService.extractUserIdFromVerificationToken(token);
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            return ResponseEntity.status(404).body(new ErrorResponseDTO("User not found"));
+        } else if (user.isVerified()) {
+            return ResponseEntity.badRequest().body(new ErrorResponseDTO("Email already verified"));
         }
+
+        user.setVerified(true);
+        userRepository.save(user);
+        return ResponseEntity.ok("Email verified successfully");
     }
 } 
