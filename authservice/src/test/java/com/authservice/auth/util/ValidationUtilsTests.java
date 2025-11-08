@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
+import com.authservice.auth.exception.ValidationException;
+
 public class ValidationUtilsTests {
 
     @Test
@@ -17,51 +19,50 @@ public class ValidationUtilsTests {
     }
 
     @Test
-    public void validateEmailAddressConstraints_nullEmail_throwsIllegalArgument() {
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+    public void validateEmailAddressConstraints_nullEmail_throwsValidationException() {
+        ValidationException ex = assertThrows(ValidationException.class,
             () -> ValidationUtils.validateEmailAddressConstraints(null));
         assertEquals("Email is required", ex.getMessage());
     }
 
     @Test
-    public void validateEmailAddressConstraints_invalidEmails_throwIllegalArgument() {
-        assertThrows(IllegalArgumentException.class, () -> ValidationUtils.validateEmailAddressConstraints("invalidemail"));
-        assertThrows(IllegalArgumentException.class, () -> ValidationUtils.validateEmailAddressConstraints("invalid@.domain.com"));
-        assertThrows(IllegalArgumentException.class, () -> ValidationUtils.validateEmailAddressConstraints(".dot@start.com"));
-        assertThrows(IllegalArgumentException.class, () -> ValidationUtils.validateEmailAddressConstraints("local..dots@domain.com"));
-        assertThrows(IllegalArgumentException.class, () -> ValidationUtils.validateEmailAddressConstraints("invalid@domaindots..com"));
-        assertThrows(IllegalArgumentException.class, () -> ValidationUtils.validateEmailAddressConstraints("invalid@domain"));
+    public void validateEmailAddressConstraints_invalidEmails_throwValidationException() {
+        assertThrows(ValidationException.class, () -> ValidationUtils.validateEmailAddressConstraints("invalidemail"));
+        assertThrows(ValidationException.class, () -> ValidationUtils.validateEmailAddressConstraints("invalid@.domain.com"));
+        assertThrows(ValidationException.class, () -> ValidationUtils.validateEmailAddressConstraints(".dot@start.com"));
+        assertThrows(ValidationException.class, () -> ValidationUtils.validateEmailAddressConstraints("local..dots@domain.com"));
+        assertThrows(ValidationException.class, () -> ValidationUtils.validateEmailAddressConstraints("invalid@domaindots..com"));
+        assertThrows(ValidationException.class, () -> ValidationUtils.validateEmailAddressConstraints("invalid@domain"));
     }
 
     @Test
-    public void validateEmailAddressConstraints_localPartTooLong_throwsIllegalArgument() {
+    public void validateEmailAddressConstraints_localPartTooLong_throwsValidationException() {
         StringBuilder local = new StringBuilder();
         for (int i = 0; i < 65; i++) {
             local.append("a");
         }
         String email = local + "@test-domain.com";
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+        ValidationException ex = assertThrows(ValidationException.class,
             () -> ValidationUtils.validateEmailAddressConstraints(email));
         assertTrue(ex.getMessage().toLowerCase().contains("local"));
     }
 
     @Test
-    public void validateEmailAddressConstraints_domainTooLong_throwsIllegalArgument() {
+    public void validateEmailAddressConstraints_domainTooLong_throwsValidationException() {
         StringBuilder domain = new StringBuilder();
         for (int i = 0; i < 256; i++) {
             domain.append("a");
         }
         String email = "test@" + domain + ".com";
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+        ValidationException ex = assertThrows(ValidationException.class,
             () -> ValidationUtils.validateEmailAddressConstraints(email));
         assertTrue(ex.getMessage().toLowerCase().contains("domain"));
     }
 
     @Test
-    public void validateEmailAddressConstraints_domainTooShort_throwsIllegalArgument() {
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+    public void validateEmailAddressConstraints_domainTooShort_throwsValidationException() {
+        ValidationException ex = assertThrows(ValidationException.class,
             () -> ValidationUtils.validateEmailAddressConstraints("a@b.c"));
-            System.out.println(ex);
         assertTrue(ex.getMessage().toLowerCase().contains("domain"));
     }
 }

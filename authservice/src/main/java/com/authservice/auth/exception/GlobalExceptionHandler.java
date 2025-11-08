@@ -23,8 +23,8 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(new ErrorResponseDTO(message));
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponseDTO> handleIllegalArgumentExceptions(IllegalArgumentException ex) {
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<ErrorResponseDTO> handleValidationExceptions(ValidationException ex) {
         return ResponseEntity.badRequest().body(new ErrorResponseDTO(ex.getMessage()));
     }
 }
