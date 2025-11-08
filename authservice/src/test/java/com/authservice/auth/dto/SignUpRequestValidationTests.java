@@ -53,7 +53,7 @@ public class SignUpRequestValidationTests {
         dto.setEmail(longEmail.toString());
         Set<ConstraintViolation<SignUpRequestDTO>> violations = validator.validate(dto);
         assertTrue(violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("email")));
-        assertTrue(violations.stream().anyMatch(v -> v.getMessage().contains("Email address too long")));
+        assertTrue(violations.stream().anyMatch(v -> v.getMessage().contains("Email address must be between 5 and 254 characters")));
     }
 
     @Test

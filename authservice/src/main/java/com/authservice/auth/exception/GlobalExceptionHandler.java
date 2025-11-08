@@ -1,4 +1,4 @@
-package com.authservice.auth.controller;
+package com.authservice.auth.exception;
 
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 import org.springframework.http.ResponseEntity;
 
 @RestControllerAdvice
-public class ValidationExceptionHandler {
+public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponseDTO> handleValidationExceptions(MethodArgumentNotValidException ex) {
@@ -21,5 +21,10 @@ public class ValidationExceptionHandler {
             .map(e -> "Error: " + e.getDefaultMessage())
             .collect(Collectors.joining("; "));
         return ResponseEntity.badRequest().body(new ErrorResponseDTO(message));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponseDTO> handleIllegalArgumentExceptions(IllegalArgumentException ex) {
+        return ResponseEntity.badRequest().body(new ErrorResponseDTO(ex.getMessage()));
     }
 }

@@ -33,7 +33,7 @@ public class AuthControllerTest {
     private static final String PASSWORD = "testPassword";
     private static final String WRONG_PASSWORD = "wrongPassword";
     private static final String ENCODED_PASSWORD = "encodedPassword";
-    private static final String EMAIL = "testEmail@test.com";
+    private static final String EMAIL = "testemail@test.com";
     private static final String USER_ID = "testId";
     private static final String FIRST_NAME = "Jane";
     private static final String LAST_NAME = "Doe";

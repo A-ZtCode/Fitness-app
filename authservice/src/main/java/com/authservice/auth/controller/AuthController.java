@@ -9,6 +9,7 @@ import com.authservice.auth.dto.UpdateUserRequestDTO;
 import com.authservice.auth.dto.UserResponseDTO;
 import com.authservice.auth.repository.UserRepository;
 import com.authservice.auth.service.JwtService;
+import com.authservice.auth.util.ValidationUtils;
 
 import javax.validation.Valid;
 
@@ -89,7 +90,10 @@ public class AuthController {
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@Valid @RequestBody SignUpRequestDTO request) {
         if (request.getEmail() != null && !request.getEmail().isEmpty()) {
-            String email = request.getEmail();
+            // Normalise and validate email
+            String email = request.getEmail().trim().toLowerCase();
+            ValidationUtils.validateEmailAddressConstraints(email);
+            
             if (userRepository.existsByEmail(email)) {
                 return ResponseEntity.badRequest().body(new ErrorResponseDTO("Email already registered - please log in"));
             }
@@ -110,7 +114,10 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequestDTO request) {
         if (request.getEmail() != null && !request.getEmail().isEmpty()) {
-            String email = request.getEmail();
+            // Normalise and validate email
+            String email = request.getEmail().trim().toLowerCase();
+            ValidationUtils.validateEmailAddressConstraints(email);
+
             User existingUser = userRepository.findByEmail(email);
             if (existingUser != null && passwordEncoder.matches(request.getPassword(), existingUser.getPassword())) {
                 String jwt = jwtService.generateToken(email);

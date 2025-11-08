@@ -8,7 +8,7 @@ import javax.validation.constraints.Pattern;
 public class SignUpRequestDTO {
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
-    @Size(max = 254, message = "Email address too long")
+    @Size(min = 5, max = 254, message = "Email address must be between 5 and 254 characters")
     private String email;
 
     @NotBlank(message = "Password is required")
