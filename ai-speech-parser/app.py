@@ -22,8 +22,8 @@ groq_api = os.getenv("GROQ_API_KEY")
 
 # Initialize LLM model
 groq = ChatGroq(api_key=groq_api, 
-                # model="llama-3.1-8b-instant", 
-                model="openai/gpt-oss-20b",
+                model="llama-3.1-8b-instant", 
+               # model="openai/gpt-oss-20b",
                 temperature=0.0,
                 max_retries=2)
 
