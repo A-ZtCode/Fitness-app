@@ -40,7 +40,7 @@ public class AuthControllerTest {
     private static final String USER_ID = "testId";
     private static final String FIRST_NAME = "Jane";
     private static final String LAST_NAME = "Doe";
-    private static final String USER_REGISTERED_MSG = "User registered successfully!";
+    private static final String USER_REGISTERED_MSG = "User registered successfully! Please check your email to verify your account before logging in.";
     private static final String EMAIL_EXISTS_MSG = "Email already registered - please log in";
     private static final String USER_AUTHENTICATED_MSG = "User authenticated";
     private static final String INVALID_CREDENTIALS_MSG = "Email or password is incorrect - please try again";
@@ -110,7 +110,6 @@ public class AuthControllerTest {
 
         assertEquals(200, response.getStatusCodeValue());
         assertEquals(USER_REGISTERED_MSG, body.getMessage());
-        assertEquals(JWT, body.getJwt());
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(userCaptor.capture());
@@ -159,6 +158,7 @@ public class AuthControllerTest {
     public void authenticateUser_whenEmailAndPasswordCorrect_authenticatesUser() {
         LoginRequestDTO request = createLoginRequest(EMAIL, PASSWORD);
         User existingUser = createUser(EMAIL, ENCODED_PASSWORD, FIRST_NAME, LAST_NAME);
+        existingUser.setVerified(true);
 
         when(userRepository.findByEmail(EMAIL))
             .thenReturn(existingUser);
@@ -178,6 +178,7 @@ public class AuthControllerTest {
     public void authenticateUser_whenEmailCorrectPasswordIncorrect_returnsUnauthorized() {
         LoginRequestDTO request = createLoginRequest(EMAIL, WRONG_PASSWORD);
         User existingUser = createUser(EMAIL, ENCODED_PASSWORD, FIRST_NAME, LAST_NAME);
+        existingUser.setVerified(true);
 
         when(userRepository.findByEmail(EMAIL))
             .thenReturn(existingUser);
@@ -320,5 +321,26 @@ public class AuthControllerTest {
             InvalidTokenException.class, 
             () -> authController.verifyEmail(expiredToken)
         );
+    }
+
+    @Test
+    public void verifyEmail_whenValidToken_verifiesUser() {
+        final String TOKEN = "valid-verification-token";
+        when(emailService.extractUserIdFromVerificationToken(TOKEN)).thenReturn(USER_ID);
+
+        User user = createUser(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
+        user.setId(USER_ID);
+
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+
+        ResponseEntity<?> response = authController.verifyEmail(TOKEN);
+
+        verify(emailService).extractUserIdFromVerificationToken(TOKEN);
+        verify(userRepository).findById(USER_ID);
+        verify(userRepository).save(user);
+
+        assertEquals(200, response.getStatusCodeValue());
+        assertEquals("Email verified successfully", response.getBody());
+        assertTrue(user.isVerified());
     }
 }

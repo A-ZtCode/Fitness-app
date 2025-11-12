@@ -101,8 +101,8 @@ public class AuthController {
             user.setFirstName(request.getFirstName());
             user.setLastName(request.getLastName());
             userRepository.save(user);
-            String jwt = jwtService.createUserToken(email);
-            AuthResponseDTO response = new AuthResponseDTO(jwt, "User registered successfully!");
+            emailService.sendVerificationEmail(user);
+            AuthResponseDTO response = new AuthResponseDTO("User registered successfully! Please check your email to verify your account before logging in.");
             return ResponseEntity.ok(response);
         } else {
             return ResponseEntity.badRequest().body(new ErrorResponseDTO("Email must be provided"));
@@ -118,9 +118,14 @@ public class AuthController {
 
             User existingUser = userRepository.findByEmail(email);
             if (existingUser != null && passwordEncoder.matches(request.getPassword(), existingUser.getPassword())) {
-                String jwt = jwtService.createUserToken(email);
-                AuthResponseDTO response = new AuthResponseDTO(jwt, "User authenticated");
-                return ResponseEntity.ok(response);
+                if (existingUser.isVerified()) {
+                    String jwt = jwtService.createUserToken(email);
+                    AuthResponseDTO response = new AuthResponseDTO(jwt, "User authenticated");
+                    return ResponseEntity.ok(response);
+                } else {
+                    ErrorResponseDTO response = new ErrorResponseDTO("Email not verified - Please check your email for a verification link");
+                    return ResponseEntity.status(401).body(response);
+                }
             } else {
                 return ResponseEntity.status(401).body(new ErrorResponseDTO("Email or password is incorrect - please try again"));
             }
@@ -135,12 +140,13 @@ public class AuthController {
         User user = userRepository.findById(userId).orElse(null);
         if (user == null) {
             return ResponseEntity.status(404).body(new ErrorResponseDTO("User not found"));
-        } else if (user.isVerified()) {
-            return ResponseEntity.badRequest().body(new ErrorResponseDTO("Email already verified"));
         }
 
-        user.setVerified(true);
-        userRepository.save(user);
+        if (!user.isVerified()) {
+            user.setVerified(true);
+            userRepository.save(user);
+        }
+    
         return ResponseEntity.ok("Email verified successfully");
     }
 } 

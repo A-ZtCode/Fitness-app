@@ -84,14 +84,12 @@ public class AuthControllerValidationTests {
 
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
         when(passwordEncoder.encode(anyString())).thenReturn("encoded");
-        when(jwtService.createUserToken(anyString())).thenReturn("jwt");
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         mockMvc.perform(post(signupUrl)
             .contentType(APPLICATION_JSON)
             .content(body))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.jwt").value("jwt"));
+            .andExpect(status().isOk());
         
         verify(userRepository, times(1)).save(any(User.class));
     }
@@ -115,6 +113,7 @@ public class AuthControllerValidationTests {
         User user = new User();
         user.setEmail("email@test.com");
         user.setPassword("encoded");
+        user.setVerified(true);
 
         when(userRepository.findByEmail("email@test.com")).thenReturn(user);
         when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
