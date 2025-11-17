@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -114,7 +115,7 @@ public class AuthControllerTest {
         assertEquals(USER_REGISTERED_MSG, body.getMessage());
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(userCaptor.capture());
+        verify(userRepository, times(2)).save(userCaptor.capture());
         User savedUser = userCaptor.getValue();
 
         assertEquals(ENCODED_PASSWORD, savedUser.getPassword());

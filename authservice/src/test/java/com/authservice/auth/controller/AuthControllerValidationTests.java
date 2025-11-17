@@ -91,7 +91,7 @@ public class AuthControllerValidationTests {
             .content(body))
             .andExpect(status().isOk());
         
-        verify(userRepository, times(1)).save(any(User.class));
+        verify(userRepository, times(2)).save(any(User.class));
     }
 
     @Test

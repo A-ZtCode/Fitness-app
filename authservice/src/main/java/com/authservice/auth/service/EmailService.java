@@ -7,6 +7,7 @@ import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,9 @@ public class EmailService {
     private final JavaMailSender mailSender;
     private final JwtService jwtService;
 
+    @Value("${FRONTEND_URL:http://localhost:3000}")
+    private String frontendUrl;
+
     @Autowired
     public EmailService(JavaMailSender mailSender, JwtService jwtService) {
         this.mailSender = mailSender;
@@ -29,7 +33,7 @@ public class EmailService {
     public void sendVerificationEmail(User user) {
         String token = jwtService.createEmailVerificationToken(user.getId());
         try {
-            String url = "http://localhost:3000/verify?token=" + URLEncoder.encode(token, "UTF-8");
+            String url = frontendUrl + "/verify?token=" + URLEncoder.encode(token, "UTF-8");
             String name = user.getFirstName();
             String html = "<p>Hi " + name + ",</p>" 
                 + "<p>Please click the link below to verify your email:</p>"
