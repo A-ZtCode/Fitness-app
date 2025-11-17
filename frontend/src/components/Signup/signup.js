@@ -129,9 +129,7 @@ const Signup = () => {
               Thanks for signing up!
             </Typography>
             <Typography>
-              We have sent a verification link to: {formData.email}.
-            </Typography>
-            <Typography sx={{ mb: 2 }}>
+              We have sent a verification link to: {formData.email}.<br />
               Please check your inbox and click the link to verify your account.
             </Typography>
             <Typography sx={{ mb: 2}}>

@@ -106,6 +106,8 @@ public class AuthController {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
             user.setFirstName(request.getFirstName());
             user.setLastName(request.getLastName());
+            userRepository.save(user);
+            
             emailService.sendVerificationEmail(user);
             user.setVerificationEmailSentAt(now());
             userRepository.save(user);

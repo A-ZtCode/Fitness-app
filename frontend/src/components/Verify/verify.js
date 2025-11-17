@@ -41,7 +41,9 @@ const Verify = () => {
     return (
       <Box sx={{ textAlign: "center" }}>
         <CircularProgress />
-        <Typography sx={{ mt: 2 }}>Verifying your email...</Typography>
+        <Typography sx={{ mt: 2 }}>
+          Verifying your email...
+        </Typography>
       </Box>
     );
   }
@@ -50,26 +52,53 @@ const Verify = () => {
     <Box sx={{ textAlign: "center" }}>
       {status === "success" ? (
         <>
-          <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>
-          <Button variant="contained" onClick={() => navigate("/login?verified=true")}>Go to login</Button>
+          <Alert 
+            severity="success" 
+            sx={{ mb: 2 }}
+          >
+            {message}
+          </Alert>
+          <Button 
+            variant="contained" 
+            onClick={() => navigate("/login")}
+          >
+            Go to login
+          </Button>
         </>
       ) : status === "error" && !token ? (
         <>
-          <Alert severity="error" sx={{ mb: 2 }}>{message}</Alert>
-          <Button variant="contained" onClick={() => navigate("/signup")}>Back to signup</Button>
+          <Alert 
+            severity="error" 
+            sx={{ mb: 2 }}
+          >
+            {message}
+          </Alert>
+          <Button 
+            variant="contained" 
+            onClick={() => navigate("/signup")}
+          >
+            Back to signup
+          </Button>
         </>
       ) : (
         <>
           {status === "error" && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert 
+              severity="error" 
+              sx={{ mb: 2 }}
+            >
               {message}
             </Alert>
           )}
           <Typography sx={{ mb: 2 }}>
             Click the button below to verify your email.
           </Typography>
-          <Button variant="contained" onClick={handleVerify} disabled={!token || status === "verifying"}>
-            {status === "verifying" ? <CircularProgress size={20}/> : "Verify email"}
+          <Button 
+            variant="contained" 
+            onClick={handleVerify} 
+            disabled={!token || status === "verifying"}
+          >
+            Verify email
           </Button>
         </>
       )}
