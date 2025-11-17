@@ -36,13 +36,16 @@ public class EmailService {
             String url = frontendUrl + "/verify?token=" + URLEncoder.encode(token, "UTF-8");
             String name = user.getFirstName();
             String html = "<p>Hi " + name + ",</p>" 
-                + "<p>Please click the link below to verify your email:</p>"
-                + "<a href=\"" + url + "\">Verify email</a>";
+                + "<p>Thanks for signing up!<p>"
+                + "<p>To begin your fitness journey, please click the link below to verify your email address:</p>"
+                + "<a href=\"" + url + "\">Verify email</a>"
+                + "<br/>"
+                + "<p>This link will expire in 24 hours.</p>";
 
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, "utf-8");
             helper.setTo(user.getEmail());
-            helper.setSubject("MLA Fitness App - Email Verification");
+            helper.setSubject("MLA Fitness App - Verify your email");
             helper.setText(html, true);
             mailSender.send(message);
         } catch (UnsupportedEncodingException | MessagingException e) {

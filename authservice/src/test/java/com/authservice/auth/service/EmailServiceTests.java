@@ -75,7 +75,7 @@ public class EmailServiceTests {
         String content = (String) sentMessage.getContent();
         
         assertEquals(user.getEmail(), sentMessage.getAllRecipients()[0].toString());
-        assertEquals("MLA Fitness App - Email Verification", sentMessage.getSubject());
+        assertEquals("MLA Fitness App - Verify your email", sentMessage.getSubject());
         assertTrue(content.contains("Hi " + user.getFirstName()));
         assertTrue(content.contains("verify?token=" + TOKEN));
     }
