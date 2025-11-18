@@ -18,19 +18,32 @@ app.use(express.json());
 // JWT verification middleware
 function authenticateJWT(req, res, next) {
   const authHeader = req.headers.authorization;
-  const token = authHeader.split(' ')[1];
 
-  if (!token) {
-    return res.status(401).json({ error: 'Missing token'})
-  };
+  if (!authHeader) {
+    console.log("Missing Authorization header");
+    return res.status(401).json({ error: "Missing Authorization header" });
+  }
+
+  const parts = authHeader.split(" ");
+  if (parts.length !== 2 || parts[0] !== "Bearer") {
+    console.log("Bad Authorization header format:", authHeader);
+    return res.status(401).json({ error: "Invalid Authorization header" });
+  }
+
+  const token = parts[1];
+
+  if (!JWT_SECRET_KEY) {
+    console.error("JWT_SECRET_KEY is not set in environment for activity tracking service");
+  }
 
   jwt.verify(token, JWT_SECRET_KEY, (err, user) => {
     if (err) {
-      return res.status(401).json({ error: 'Invalid or expired token'})
+      console.log("JWT verify error:", err.message);
+      return res.status(401).json({ error: "Invalid or expired token" });
     }
     req.user = user;
     next();
-  })
+  });
 }
 
 // MongoDB connection
