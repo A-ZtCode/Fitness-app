@@ -405,7 +405,8 @@ def get_activities_by_range():
                 "time": time_str,
                 "activityType": a.get("exerciseType"),
                 "duration": a.get("duration"),
-                "comments": a.get("description", "")
+                "comments": a.get("description", ""),
+                "createdAt": created.isoformat()
             })
 
         return jsonify(out)
