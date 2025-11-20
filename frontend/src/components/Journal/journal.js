@@ -19,12 +19,32 @@ const formatFriendlyDate = (dateString) =>
   moment(dateString).format("MMM D, YYYY");
 const formatDayHeading = (iso) => moment(iso).format("dddd D MMM YYYY");
 
-const groupByDay = (list) =>
-  list.reduce((acc, a) => {
+// Format the logged timestamp from createdAt or datetime field
+const formatLoggedTimestamp = (activity) => {
+  // Use createdAt if available (when activity was logged), otherwise fall back to date
+  const timestamp = activity.createdAt || activity.created_at || activity.datetime || activity.date;
+  return "Logged on " + moment(timestamp).format("ddd D MMM YYYY HH:mm");
+};
+
+// Group by day AND sort activities within each day by logged time (newest first)
+const groupByDay = (list) => {
+  const grouped = list.reduce((acc, a) => {
     const key = moment(a.date).format("YYYY-MM-DD");
     (acc[key] ||= []).push(a);
     return acc;
   }, {});
+  
+  // Sort activities within each day by when they were logged (newest first)
+  Object.keys(grouped).forEach(key => {
+    grouped[key].sort((a, b) => {
+      const timeA = moment(a.createdAt || a.created_at || a.date);
+      const timeB = moment(b.createdAt || b.created_at || b.date);
+      return timeB - timeA; // Newest first
+    });
+  });
+  
+  return grouped;
+};
 
 const Journal = ({ currentUser }) => {
   const API_BASE =
@@ -35,49 +55,43 @@ const Journal = ({ currentUser }) => {
   const [exercises, setExercises] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalDates, setModalDates] = useState({ start: '', end: '' });
-
-
-  // inline note editing
   const [editingId, setEditingId] = useState(null);
   const [draftComment, setDraftComment] = useState("");
   const [savingNoteId, setSavingNoteId] = useState(null);
-
   const [collapsedDays, setCollapsedDays] = useState(new Set());
 
-  // Effect to calculate date range when the activeView button changes
+  // Calculate date range for rolling windows
   useEffect(() => {
     if (activeView === 'custom') return;
 
-    const today = moment();
+    const today = moment().endOf('day');
     let start, end;
 
     switch (activeView) {
       case 'day':
-        start = today.clone().startOf('day');
-        end = today.clone().endOf('day');
+        start = moment().startOf('day');
+        end = moment().endOf('day');
         break;
       case 'month':
-        start = today.clone().startOf('month');
-        end = today.clone().endOf('month');
+        start = moment().subtract(29, 'days').startOf('day');
+        end = today;
         break;
       case 'biweek':
-        start = today.clone().startOf('week'); // Starts this Monday
-        end = today.clone().startOf('week').add(13, 'days').endOf('day'); // Ends Sunday 2 weeks away
+        start = moment().subtract(13, 'days').startOf('day');
+        end = today;
         break;
       case 'week':
       default:
-        start = today.clone().startOf('week'); // Monday
-        end = today.clone().endOf('week');   // Sunday
+        start = moment().subtract(6, 'days').startOf('day');
+        end = today;
         break;
     }
 
     setDateRange({ start: formatAPIDate(start), end: formatAPIDate(end) });
-  }, [activeView]); // Re-run when view changes
+  }, [activeView]);
 
-  // Track the previous date range
   const [prevDateRange, setPrevDateRange] = useState({ start: null, end: null });
 
   useEffect(() => {
@@ -87,7 +101,6 @@ const Journal = ({ currentUser }) => {
       return;
     }
 
-    // Check if date range actually changed
     const dateRangeChanged =
       prevDateRange.start !== dateRange.start ||
       prevDateRange.end !== dateRange.end;
@@ -121,7 +134,6 @@ const Journal = ({ currentUser }) => {
         if (Array.isArray(res.data)) {
           setExercises(res.data);
 
-          // Collapse all days only when date range changes
           if (dateRangeChanged && res.data.length > 0) {
             const days = Object.keys(groupByDay(res.data));
             setCollapsedDays(new Set(days));
@@ -154,8 +166,6 @@ const Journal = ({ currentUser }) => {
     };
   }, [currentUser, dateRange, API_BASE]);
 
-
-  /* Lock body scroll when modal is open */
   useEffect(() => {
     if (isModalOpen) {
       document.body.classList.add("modal-open");
@@ -164,8 +174,6 @@ const Journal = ({ currentUser }) => {
     }
     return () => document.body.classList.remove("modal-open");
   }, [isModalOpen]);
-
-  // --- Modal Handlers ---
 
   const openCustomRangeModal = () => {
     setModalDates({
@@ -200,16 +208,6 @@ const Journal = ({ currentUser }) => {
     setIsModalOpen(false);
   };
 
-  const renderDateRangeDisplay = () => {
-    if (!dateRange.start || !dateRange.end) return "Select a period";
-    const startFriendly = formatFriendlyDate(dateRange.start);
-    const endFriendly = formatFriendlyDate(dateRange.end);
-    return startFriendly === endFriendly
-      ? startFriendly
-      : `${startFriendly} – ${endFriendly}`;
-  };
-
-  // --- Note Editing Handlers ---
   const startEdit = (a) => {
     setEditingId(a.id);
     setDraftComment(a.comments || "");
@@ -219,8 +217,6 @@ const Journal = ({ currentUser }) => {
     setEditingId(null);
     setDraftComment("");
   };
-
-
 
   const saveNote = async (activity) => {
     try {
@@ -240,7 +236,6 @@ const Journal = ({ currentUser }) => {
           } 
         }
       );
-      // update exercises with the new comment
       setExercises((prev) =>
         prev.map((x) =>
           (x.id ?? x.activity_id ?? x._id) === activityId
@@ -330,7 +325,6 @@ const Journal = ({ currentUser }) => {
 
     return (
       <>
-        {/* Collapse/Expand All Controls */}
         <div className="collapse-controls">
           <button
             className="collapse-all-btn"
@@ -389,8 +383,8 @@ const Journal = ({ currentUser }) => {
                       >
                         <div className="card-header">
                           <h3 className="card-title">{a.activityType || "Activity"}</h3>
-                          <span className="card-date">
-                            {a.time || moment(a.datetime).utc().format("HH:mm")}
+                          <span className="card-date" title="Logged at">
+                            {formatLoggedTimestamp(a)}
                           </span>
                         </div>
                         <div className="card-body">
@@ -458,11 +452,11 @@ const Journal = ({ currentUser }) => {
       </div>
     </div>
   );
+
   return (
     <div className="journal-container">
       <h4 className="journal-title">Journal</h4>
 
-      {/* Filter Controls */}
       <div className="filter-controls">
         <div className="filter-toggles">
           <button
@@ -473,17 +467,17 @@ const Journal = ({ currentUser }) => {
           <button
             onClick={() => setActiveView('week')}
             className={`filter-btn ${activeView === 'week' ? 'active' : ''}`}>
-            This Week
+            Last 7 Days
           </button>
           <button
             onClick={() => setActiveView('month')}
             className={`filter-btn ${activeView === 'month' ? 'active' : ''}`}>
-            This Month
+            Last 30 Days
           </button>
           <button
             onClick={() => setActiveView('biweek')}
             className={`filter-btn ${activeView === 'biweek' ? 'active' : ''}`}>
-            Bi-Week
+            Last 14 Days
           </button>
         </div>
 
@@ -495,7 +489,6 @@ const Journal = ({ currentUser }) => {
         </button>
       </div>
 
-      {/* Selected Date Range Display */}
       <div className="date-range-display-container">
         <h2 className="date-range-title">Selected Period</h2>
         <p className="date-range-display">
@@ -507,10 +500,8 @@ const Journal = ({ currentUser }) => {
         </p>
       </div>
 
-      {/* Exercise Sessions List */}
       {renderActivityFeed()}
 
-      {/* Custom Date Range Modal */}
       {isModalOpen && ReactDOM.createPortal(modal, document.body)}
     </div>
   );

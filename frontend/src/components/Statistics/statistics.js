@@ -92,6 +92,7 @@ const Statistics = ({ currentUser }) => {
   useEffect(() => {
     setLoading(true);
 
+    // Use REST API endpoints that were working before
     const summaryUrl = `http://localhost:5050/stats/weekly_summary/${encodeURIComponent(
       currentUser
     )}`;
@@ -101,7 +102,7 @@ const Statistics = ({ currentUser }) => {
     const jwt = localStorage.getItem("jwt");
     const headers = jwt ? { Authorization: `Bearer ${jwt}` } : {};
 
-    // ✅ Load both and set state
+    // Load both endpoints and set state
     Promise.all([
       axios.get(summaryUrl, { headers }),
       axios.get(trendUrl, { headers }),
@@ -149,8 +150,8 @@ const Statistics = ({ currentUser }) => {
   const topExercise =
     distributionData.length > 0
       ? distributionData.reduce((prev, current) =>
-          prev.value > current.value ? prev : current
-        )
+        prev.value > current.value ? prev : current
+      )
       : { name: "N/A", value: 0 };
 
   const topExerciseDurationFormatted = toHoursAndMinutes(topExercise.value);
@@ -196,14 +197,30 @@ const Statistics = ({ currentUser }) => {
           <div className="charts-grid">
             {/* Weekly Activity Trend (Line Chart) */}
             <div className="chart-card wide-chart">
-              <h3>Total Weekly Activity Trend</h3>
+              <h3>Last 7 Days Activity</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={weeklyData}>
                   <CartesianGrid
                     strokeDasharray="3 3"
                     stroke={NEUTRAL_COLOR_LIGHT}
                   />
-                  <XAxis dataKey="name" stroke="#555" />
+                  <XAxis
+                    dataKey="name"
+                    stroke="#555"
+                    style={{ fontSize: '11px' }}
+                    tickFormatter={(dayName) => {
+                      // Find the date for this day
+                      const dataPoint = weeklyData.find(d => d.name === dayName);
+                      if (dataPoint && dataPoint.date) {
+                        // Convert "2025-11-17" to "17/11"
+                        const dateParts = dataPoint.date.split('-');
+                        const day = dateParts[2];
+                        const month = dateParts[1];
+                        return `${dayName}\n${day}/${month}`;
+                      }
+                      return dayName;
+                    }}
+                  />
                   <YAxis stroke="#555" />
 
                   <Tooltip
@@ -212,6 +229,21 @@ const Statistics = ({ currentUser }) => {
                         return toHoursAndMinutes(value);
                       }
                       return value;
+                    }}
+                    labelFormatter={(label) => {
+                      // Find the corresponding date from weeklyData
+                      const dataPoint = weeklyData.find(d => d.name === label);
+                      if (dataPoint && dataPoint.date) {
+                        // Convert "2025-11-17" to "Monday, Nov 17, 2025"
+                        const dateObj = new Date(dataPoint.date + 'T00:00:00');
+                        return dateObj.toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        });
+                      }
+                      return label;
                     }}
                   />
 
