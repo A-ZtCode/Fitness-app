@@ -1,9 +1,25 @@
 package com.authservice.auth.controller;
 
-import com.authservice.auth.model.UpdateUserRequestDTO;
 import com.authservice.auth.model.User;
-import com.authservice.auth.model.UserResponseDTO;
+import com.authservice.auth.dto.AuthResponseDTO;
+import com.authservice.auth.dto.ErrorResponseDTO;
+import com.authservice.auth.dto.LoginRequestDTO;
+import com.authservice.auth.dto.SignUpRequestDTO;
+import com.authservice.auth.dto.UpdateUserRequestDTO;
+import com.authservice.auth.dto.UserResponseDTO;
 import com.authservice.auth.repository.UserRepository;
+import com.authservice.auth.service.EmailService;
+import com.authservice.auth.service.JwtService;
+import com.authservice.auth.util.ValidationUtils;
+
+import static java.time.Instant.now;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Map;
+
+import javax.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,6 +35,12 @@ public class AuthController {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private JwtService jwtService;
+
+    @Autowired
+    private EmailService emailService;
 
     @GetMapping("/user")
     public ResponseEntity<?> getUserByEmail(@RequestParam("email") String email) {
@@ -58,12 +80,6 @@ public class AuthController {
             return ResponseEntity.status(404).body("User not found");
         }
 
-        if (request.getEmail() != null && !request.getEmail().isEmpty()) {
-            if (userRepository.existsByEmail(request.getEmail())) {
-                return ResponseEntity.badRequest().body("Email already in use");
-            }
-            user.setEmail(request.getEmail());
-        }
         if (request.getFirstName() != null) {
             user.setFirstName(request.getFirstName());
         }
@@ -76,54 +92,107 @@ public class AuthController {
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<?> registerUser(@RequestBody User user) {
-        // Supports legacy registration with username, and new email registration
-        // TODO: deprecate username registration
+    public ResponseEntity<?> registerUser(@Valid @RequestBody SignUpRequestDTO request) {
+        if (request.getEmail() != null && !request.getEmail().isEmpty()) {
+            // Normalise and validate email
+            String email = request.getEmail().trim().toLowerCase();
+            ValidationUtils.validateEmailAddressConstraints(email);
 
-        if (user.getEmail() != null && !user.getEmail().isEmpty()) {
-            // registration with email
-            if (userRepository.existsByEmail(user.getEmail())) {
-                return ResponseEntity.badRequest().body("Email already registered - please log in");
+            if (userRepository.existsByEmail(email)) {
+                return ResponseEntity.badRequest().body(new ErrorResponseDTO("Email already registered - please log in"));
             }
-            user.setPassword(passwordEncoder.encode(user.getPassword()));
+            User user = new User();
+            user.setEmail(email);
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+            user.setFirstName(request.getFirstName());
+            user.setLastName(request.getLastName());
             userRepository.save(user);
-            return ResponseEntity.ok("User registered successfully!");
-        } else if (user.getUsername() != null && !user.getUsername().isEmpty()) {
-            // legacy registration with username
-            if (userRepository.existsByUsername(user.getUsername())) {
-                return ResponseEntity.badRequest().body("User already exists - please log in");
-            }
-            user.setPassword(passwordEncoder.encode(user.getPassword()));
+            
+            emailService.sendVerificationEmail(user);
+            user.setVerificationEmailSentAt(now());
             userRepository.save(user);
-            return ResponseEntity.ok("User registered successfully!");
+            AuthResponseDTO response = new AuthResponseDTO("User registered successfully! Please check your email to verify your account before logging in.");
+            return ResponseEntity.ok(response);
         } else {
-            return ResponseEntity.badRequest().body("Username or email must be provided");
+            return ResponseEntity.badRequest().body(new ErrorResponseDTO("Email must be provided"));
         }
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> authenticateUser(@RequestBody User user) {
-        // Supports login with either username or email
-        // TODO: deprecate username login
+    public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequestDTO request) {
+        if (request.getEmail() != null && !request.getEmail().isEmpty()) {
+            // Normalise and validate email
+            String email = request.getEmail().trim().toLowerCase();
+            ValidationUtils.validateEmailAddressConstraints(email);
 
-        if (user.getEmail() != null && !user.getEmail().isEmpty()) {
-            // login with email
-            User existingUser = userRepository.findByEmail(user.getEmail());
-            if (existingUser != null && passwordEncoder.matches(user.getPassword(), existingUser.getPassword())) {
-                return ResponseEntity.ok("User authenticated");
+            User existingUser = userRepository.findByEmail(email);
+            if (existingUser != null && passwordEncoder.matches(request.getPassword(), existingUser.getPassword())) {
+                if (existingUser.isVerified()) {
+                    String jwt = jwtService.createUserToken(email);
+                    AuthResponseDTO response = new AuthResponseDTO(jwt, "User authenticated");
+                    return ResponseEntity.ok(response);
+                } else {
+                    ErrorResponseDTO response = new ErrorResponseDTO("Email not verified");
+                    return ResponseEntity.status(403).body(response);
+                }
             } else {
-                return ResponseEntity.status(401).body("Invalid credentials");
-            }
-        } else if (user.getUsername() != null && !user.getUsername().isEmpty()) {
-            // legacy login with username
-            User existingUser = userRepository.findByUsername(user.getUsername());
-            if (existingUser != null && passwordEncoder.matches(user.getPassword(), existingUser.getPassword())) {
-                return ResponseEntity.ok("User authenticated");
-            } else {
-                return ResponseEntity.status(401).body("Invalid credentials");
+                return ResponseEntity.status(401).body(new ErrorResponseDTO("Email or password is incorrect - please try again"));
             }
         } else {
-            return ResponseEntity.badRequest().body("Username or email must be provided");
+            return ResponseEntity.badRequest().body(new ErrorResponseDTO("Email must be provided")); 
         }
     }
-}
+
+    @GetMapping("/verify")
+    public ResponseEntity<?> verifyEmail(@RequestParam String token) {
+        String userId = emailService.extractUserIdFromVerificationToken(token);
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            return ResponseEntity.status(404).body(new ErrorResponseDTO("User not found"));
+        }
+
+        if (!user.isVerified()) {
+            user.setVerified(true);
+            userRepository.save(user);
+        }
+    
+        return ResponseEntity.ok("Email verified successfully");
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<?> resendVerificationEmail(@RequestBody Map<String, String> request) {
+        String rawEmail = request.get("email");
+        if (rawEmail == null || rawEmail.isEmpty()) {
+            return ResponseEntity.badRequest().body(new ErrorResponseDTO("Email must be provided"));
+        }
+
+        String email = rawEmail.trim().toLowerCase();
+        ValidationUtils.validateEmailAddressConstraints(email);
+
+        User user = userRepository.findByEmail(email);
+        if (user == null) {
+            return ResponseEntity.status(404).body(new ErrorResponseDTO("User not found"));
+        }
+
+        if (user.isVerified()) {
+            return ResponseEntity.badRequest().body(new ErrorResponseDTO("Email already verified"));
+        }
+
+        Instant lastRequest = user.getVerificationEmailSentAt();
+
+        // Limit requests to once every minute
+        if (lastRequest != null && lastRequest.isAfter(now().minusSeconds(60))) {
+            long secondsRemaining = Duration.between(now(), lastRequest.plusSeconds(60)).getSeconds();
+            return ResponseEntity.status(429).body(new ErrorResponseDTO(
+                "Please wait before requesting another verification email (retry in: " 
+                + secondsRemaining + " seconds)"
+            ));
+        }
+
+        emailService.sendVerificationEmail(user);
+        user.setVerificationEmailSentAt(now());
+        userRepository.save(user);
+
+        return ResponseEntity.ok("Verification email resent");
+    }
+} 
