@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useChatbot } from '../contexts/chatbotContext.js';
+import { useChatbot } from '../../contexts/chatbotContext.js';
 import './ChatbotOverlay.css';
 import ChatIcon from '@mui/icons-material/Chat';
 import CloseIcon from '@mui/icons-material/Close';

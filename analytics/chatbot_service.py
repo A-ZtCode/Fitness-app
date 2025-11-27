@@ -294,14 +294,25 @@ def build_system_prompt(context, user_context):
     """Build context-aware system prompt"""
     screen = context.get('screen', 'general')
     
-    # Format recent activities with clearer labels
+    # Format recent activities with clearer labels and hour conversion
     recent_activities_str = ""
     if user_context['recent_activities']:
-        recent_activities_str = "\n".join([
-            f"{i+1}. {a['type']}: {a['duration']} min on {a['date']}"
-            for i, a in enumerate(user_context['recent_activities'][:5])
-        ])
-        recent_activities_str = "NEWEST → OLDEST:\n" + recent_activities_str
+        formatted_activities = []
+        for i, a in enumerate(user_context['recent_activities'][:5]):
+            duration_mins = a['duration']
+            if duration_mins >= 60:
+                hours = duration_mins // 60
+                mins = duration_mins % 60
+                if mins > 0:
+                    duration_str = f"{hours} hr {mins} min"
+                else:
+                    duration_str = f"{hours} hr"
+            else:
+                duration_str = f"{duration_mins} min"
+            
+            formatted_activities.append(f"{i+1}. {a['type']}: {duration_str} on {a['date']}")
+        
+        recent_activities_str = "NEWEST → OLDEST:\n" + "\n".join(formatted_activities)
     else:
         recent_activities_str = "No recent activities logged yet."
     
@@ -352,10 +363,20 @@ IMPORTANT DATA NOTES:
 - When asked about "most recent" or "latest" activity, refer to the TOP item in recent activities list
 - The top recent activity is the NEWEST, the last one is OLDEST
 
+⚠️ DATA SANITY CHECKS - CRITICAL:
+- If you see workout durations over 3 hours, it's likely a DATA ERROR (user meant minutes, not hours)
+- A typical workout is 15-90 minutes. Anything over 3 hours is extreme/unusual
+- When creating workout plans, NEVER suggest sessions longer than 90 minutes
+- If you notice unrealistic data (like 20 hr running), acknowledge it but suggest realistic alternatives
+- Example: "I see 20hr logged - that seems like it might be a typo! For running, 20-60 min sessions are great."
+
 YOUR RESPONSE STYLE - CRITICAL:
 - MAXIMUM 1-2 SHORT SENTENCES (like texting a friend)
 - Give ONE specific actionable tip, never multiple suggestions
-- Use numbers from their data
+- Use numbers from their data BUT apply common sense
+- When creating workout plans, be REALISTIC (15-60 min per session typical, max 90 min)
+- Durations are pre-formatted (e.g., "20 hr") - use them EXACTLY as shown, but flag if unrealistic
+- NEVER convert or recalculate times - they're already in the best format
 - Be enthusiastic but brief
 - Max 1 emoji per message
 
@@ -367,6 +388,14 @@ EMOJI USAGE GUIDE:
 - Yoga: 🧘 or 🧘‍♀️
 - General fitness: 🔥, ⚡, 🎯
 - Celebration: 🎉, 🏆, ⭐
+
+WORKOUT PLAN GUIDELINES:
+- Individual sessions: 15-60 minutes (never exceed 90 minutes)
+- Weekly total: 150-300 minutes for general fitness
+- Include 1-2 rest days per week
+- Balance cardio, strength, and flexibility
+- Suggest progressive overload (gradually increase intensity)
+- Be realistic and sustainable
 
 Remember: Be concise, specific, and friendly. Short responses only.
 """
@@ -391,84 +420,255 @@ Help users review THIS WEEK's history and plan future workouts.
     return base_prompt
 
 def get_dynamic_suggestions(screen, conversation_history, user_context):
-    """Get context-aware suggestions based on conversation"""
+    """Get context-aware suggestions based on conversation, avoiding recent questions"""
     
     # Check what was recently discussed
-    recent_messages = conversation_history[-4:] if len(conversation_history) > 0 else []
+    recent_messages = conversation_history[-6:] if len(conversation_history) > 0 else []
     recent_text = " ".join([msg.get("content", "").lower() for msg in recent_messages])
     
-    # Dynamic suggestions based on context
-    if "progress" in recent_text or "doing" in recent_text or "focus" in recent_text:
-        return [
-            "What's my top exercise? 🏆",
-            "Give me a workout idea 💪",
-            "How can I improve?",
-            "Help me stay consistent"
+    # Extract recent user questions to avoid repeating them
+    recent_questions = set()
+    for msg in recent_messages:
+        if msg.get("role") == "user":
+            question = msg.get("content", "").lower().strip()
+            # Store normalized version
+            recent_questions.add(question)
+    
+    # Get user data insights
+    has_activities = user_context.get('total_activities', 0) > 0
+    weekly_mins = user_context.get('weekly_minutes', 0)
+    has_limited_data = user_context.get('total_activities', 0) <= 3
+    
+    # Helper function to filter out recently asked questions
+    def filter_recent(suggestions):
+        filtered = []
+        for suggestion in suggestions:
+            # Normalize suggestion for comparison
+            normalized = suggestion.lower().replace("?", "").replace("!", "").replace("💪", "").replace("📊", "").replace("🎯", "").replace("🏆", "").replace("📈", "").replace("🔥", "").replace("⚡", "").replace("🎉", "").replace("📅", "").replace("🌅", "").replace("⏰", "").replace("🧘", "").replace("🗓️", "").strip()
+            
+            # Check if this suggestion is similar to recent questions
+            is_recent = False
+            for recent_q in recent_questions:
+                recent_normalized = recent_q.lower().replace("?", "").replace("!", "").strip()
+                # Check for similarity (not exact match, but key words)
+                if normalized in recent_normalized or recent_normalized in normalized:
+                    is_recent = True
+                    break
+            
+            if not is_recent:
+                filtered.append(suggestion)
+        
+        # If we filtered out too many, return some anyway (but still avoid exact matches)
+        if len(filtered) < 2:
+            return [s for s in suggestions if s.lower().strip() not in recent_questions][:4]
+        
+        return filtered[:4]
+    
+    # If this is the first interaction (no conversation history), provide fresh start suggestions
+    if len(conversation_history) <= 2:  # Just greeting exchange
+        if has_limited_data:
+            return [
+                "What's a good workout for today? 💪",
+                "Help me set a weekly goal 🎯",
+                "Give me motivation to start!",
+                "How often should I workout?"
+            ]
+        else:
+            return [
+                "How am I doing this week? 📊",
+                "What's my strongest activity? 💪",
+                "Give me a workout challenge! ⚡",
+                "Help me stay motivated 🔥"
+            ]
+    
+    # Determine what user just talked about and provide DIFFERENT follow-ups
+    if "strongest" in recent_text or "top" in recent_text or "best" in recent_text:
+        candidates = [
+            "Where can I improve?",
+            "How's my workout variety?",
+            "Set a goal for next week",
+            "What's my weakest area?",
+            "What should I add to my routine?",
+            "Am I being consistent?",
+            "Plan a balanced week for me"
         ]
-    elif "motivat" in recent_text or "tip" in recent_text:
-        return [
-            "Suggest a 20-min routine",
+        return filter_recent(candidates)
+    
+    elif "improve" in recent_text or "better" in recent_text or "variety" in recent_text:
+        candidates = [
+            "Create a weekly workout plan 📅",
+            "What's a good 30-min challenge?",
+            "How often should I rest?",
+            "Suggest a new exercise to try",
+            "How do I prevent burnout?",
+            "What time is best to workout?",
+            "Balance cardio and strength for me"
+        ]
+        return filter_recent(candidates)
+    
+    elif "last workout" in recent_text or "recent" in recent_text or "latest" in recent_text:
+        candidates = [
+            "How's my weekly progress? 📊",
             "What should I do tomorrow?",
-            "Set a goal for me",
-            "Celebrate my progress!"
+            "Plan my next 3 workouts",
+            "Give me a different workout idea",
+            "What's my workout streak? 🔥",
+            "Should I take a rest day?",
+            "When did I last do strength?"
         ]
+        return filter_recent(candidates)
+    
+    elif "progress" in recent_text or "doing" in recent_text or "week" in recent_text:
+        if has_limited_data:
+            # Limited data - focus on current week and future goals
+            candidates = [
+                "What should I focus on next? 🎯",
+                "Set a weekly goal for me",
+                "Give me a workout challenge",
+                "How can I stay consistent?",
+                "What's a good next step?",
+                "Help me build momentum! 🔥",
+                "Create a workout schedule"
+            ]
+        else:
+            # Sufficient data - can compare and analyze
+            candidates = [
+                "What's my most improved activity? 📈",
+                "Set a new personal goal",
+                "Compare my weeks",
+                "What's my weekly average?",
+                "How consistent am I?",
+                "Show me my best week",
+                "What should I focus on next?"
+            ]
+        return filter_recent(candidates)
+    
+    elif "motivate" in recent_text or "tip" in recent_text or "advice" in recent_text:
+        candidates = [
+            "What's a realistic weekly goal? 🎯",
+            "How do I build a workout habit?",
+            "Give me a challenge! ⚡",
+            "What time of day is best?",
+            "How do I stay accountable?",
+            "Celebrate my wins! 🎉",
+            "What's my next milestone?"
+        ]
+        return filter_recent(candidates)
+    
     elif "workout" in recent_text or "exercise" in recent_text or "routine" in recent_text:
-        return [
-            "How do I track this?",
-            "What exercises work well together?",
-            "Give me recovery tips",
-            "When should I workout next?"
+        candidates = [
+            "How long should I rest between sessions?",
+            "What's a good warm-up?",
+            "Should I do cardio or strength?",
+            "Create a full-body routine",
+            "What exercises pair well?",
+            "How do I avoid soreness?",
+            "Suggest a recovery day activity"
         ]
-    elif "thanks" in recent_text or "thank" in recent_text:
-        return [
-            "What should I focus on next? 🎯",
-            "Give me a fitness tip!",
-            "Show my weekly progress",
-            "Help me plan tomorrow"
+        return filter_recent(candidates)
+    
+    elif "goal" in recent_text or "plan" in recent_text or "schedule" in recent_text:
+        candidates = [
+            "How do I track my goals?",
+            "What's a good monthly target?",
+            "Set reminders for me",
+            "When will I see results?",
+            "Help me stay on track",
+            "Plan my workout week",
+            "What's achievable this month?"
         ]
+        return filter_recent(candidates)
+    
+    elif "consistent" in recent_text or "consistency" in recent_text:
+        candidates = [
+            "What's my workout streak? 🔥",
+            "How do I build discipline?",
+            "What are my peak workout days?",
+            "Should I workout on weekends?",
+            "How often do I skip?",
+            "Set a consistency goal",
+            "What time do I usually workout?"
+        ]
+        return filter_recent(candidates)
+    
+    elif "thanks" in recent_text or "thank" in recent_text or "great" in recent_text or "awesome" in recent_text:
+        import random
+        suggestions_pool = [
+            ["What should I focus on tomorrow? 🌅", "Give me a recovery tip", "How's my workout balance?", "Plan my week ahead"],
+            ["Suggest a new exercise to try", "How do I prevent injuries?", "What's a fun workout idea?", "Set a new challenge for me"],
+            ["When's the best time to workout? ⏰", "How do I stay motivated?", "What's a good warm-up?", "Challenge me! ⚡"],
+            ["Give me a stretching routine 🧘", "How often should I rest?", "What exercises work together?", "Plan tomorrow's workout"],
+            ["What's my next milestone? 🎯", "Create a 7-day plan", "How do I level up?", "Give me a fitness tip"],
+            ["What should I try next?", "Help me stay on track", "How do I avoid burnout?", "Suggest a fun activity"]
+        ]
+        return filter_recent(random.choice(suggestions_pool))
+    
     else:
-        # Default suggestions based on screen
-        return get_default_suggestions(screen, user_context)
+        # Get varied default suggestions based on user's activity level
+        candidates = get_varied_default_suggestions(screen, user_context, weekly_mins, has_activities)
+        return filter_recent(candidates)
+    
+    
+def get_varied_default_suggestions(screen, user_context, weekly_mins, has_activities):
+    """Get varied default suggestions that change based on user's activity"""
+    import random
+    
+    # Define multiple suggestion sets per screen
+    suggestion_sets = {
+        "trackExercise": [
+            ["What's a good workout for today? 💪", "How long should I exercise?", "Suggest a quick 15-min routine", "What burns the most calories?"],
+            ["Plan a full-body workout", "What exercises target abs?", "Give me a cardio challenge", "How do I warm up properly?"],
+            ["Create a strength training plan", "What's good for beginners?", "Suggest HIIT exercises", "How often should I workout?"],
+            ["What's a good cool-down routine?", "Mix cardio and strength for me", "Suggest outdoor activities", "How do I prevent soreness?"]
+        ] if has_activities else [
+            ["How do I get started? 🎯", "What's a good beginner workout?", "How do I log my first exercise?", "I've never worked out before"],
+            ["What equipment do I need?", "How long for my first workout?", "Is walking enough exercise?", "Give me confidence to start!"],
+            ["What's the easiest workout?", "How do I avoid injury as a beginner?", "Set a simple first goal", "Motivate me to begin! 💪"]
+        ],
+        
+        "statistics": [
+            ["How am I doing this week? 📊", "What's my most frequent activity?", "Am I improving over time?", "Compare my weeks"],
+            ["What's my weekly average? 📈", "Show me my best day", "Am I consistent enough?", "How's my workout variety?"],
+            ["What's my longest session? 🏆", "Track my progress trend", "What activity am I neglecting?", "Set a new record!"],
+            ["How many calories burned? 🔥", "What's my total workout time?", "Am I meeting my goals?", "Show me monthly stats"]
+        ],
+        
+        "journal": [
+            ["Show me my workout patterns 🗓️", "What are my peak days?", "How often do I skip workouts?", "Review this month"],
+            ["What's my favorite workout day? 📅", "How's my consistency?", "Find gaps in my routine", "What time do I usually workout?"],
+            ["Compare this week to last", "Show my busiest workout week", "How do weekends differ?", "Track my rest days"],
+            ["What's my workout streak? 🔥", "When did I last rest?", "Plan next week's schedule", "Set reminders for me"]
+        ],
+        
+        "general": [
+            ["How do I track progress? 🎯", "Give me a fitness tip!", "What should I focus on?", "Create a weekly plan"],
+            ["How can I stay motivated? 💪", "What's a realistic goal?", "How do I build discipline?", "Celebrate my wins! 🎉"],
+            ["What's the secret to consistency?", "How do I avoid burnout?", "Balance cardio and strength", "When will I see results?"],
+            ["Give me a challenge! ⚡", "How do I level up?", "What's my next milestone?", "Keep me accountable!"]
+        ]
+    }
+    
+    # Choose different sets based on weekly activity level
+    screen_suggestions = suggestion_sets.get(screen, suggestion_sets["general"])
+    
+    if weekly_mins < 60:
+        # Low activity - encouraging
+        return screen_suggestions[0]
+    elif weekly_mins < 180:
+        # Moderate activity - progressing
+        return random.choice(screen_suggestions[:2])
+    else:
+        # High activity - advanced
+        return random.choice(screen_suggestions)
 
 def get_default_suggestions(screen, user_context):
     """Get default suggestions for each screen"""
     
     # Personalize based on user data
     has_activities = user_context.get('total_activities', 0) > 0
+    weekly_mins = user_context.get('weekly_minutes', 0)
     
-    suggestions_map = {
-        "trackExercise": [
-            "What's a good workout for today? 💪",
-            "How long should I exercise?",
-            "Suggest a 20-minute routine",
-            "Give me motivation!"
-        ] if has_activities else [
-            "How do I get started? 🎯",
-            "What's a good beginner workout?",
-            "How do I log my first exercise?",
-            "Give me motivation!"
-        ],
-        "statistics": [
-            "How am I doing this week? 📊",
-            "What's my most frequent activity?",
-            "Should I increase my duration?",
-            "Give me a fitness tip!"
-        ],
-        "journal": [
-            "Show me my workout patterns 🏆",
-            "What are my best days?",
-            "Help me plan next week",
-            "What should I focus on?"
-        ],
-        "general": [
-            "How do I track progress? 🎯",
-            "Give me a fitness tip!",
-            "What should I focus on?",
-            "How can I stay motivated?"
-        ]
-    }
-    
-    return suggestions_map.get(screen, suggestions_map["general"])
+    return get_varied_default_suggestions(screen, user_context, weekly_mins, has_activities)
 
 @app.route('/api/chat/suggestions', methods=['GET'])
 def get_suggestions():

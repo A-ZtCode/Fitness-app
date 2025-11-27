@@ -19,6 +19,13 @@ const formatFriendlyDate = (dateString) =>
   moment(dateString).format("MMM D, YYYY");
 const formatDayHeading = (iso) => moment(iso).format("dddd D MMM YYYY");
 
+// Format duration in minutes to hours and minutes
+const toHoursAndMinutes = (totalMinutes) => {
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  return h > 0 ? `${h} hr ${m} min` : `${m} min`;
+};
+
 // Format the logged timestamp from createdAt or datetime field
 const formatLoggedTimestamp = (activity) => {
   // Use createdAt if available (when activity was logged), otherwise fall back to date
@@ -389,7 +396,7 @@ const Journal = ({ currentUser }) => {
                         </div>
                         <div className="card-body">
                           <p className="card-duration">
-                            {a.duration != null ? `${a.duration} minutes` : "No duration"}
+                            {a.duration != null ? toHoursAndMinutes(a.duration) : "No duration"}
                           </p>
                           {renderEditableNote(a)}
                         </div>
