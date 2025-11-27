@@ -38,6 +38,30 @@ services:
     networks:
       - app-network
 
+  chatbot:
+    build:
+      context: ./analytics
+      dockerfile: Dockerfile.chatbot
+
+    env_file:
+      - ./analytics/.env
+
+    environment:
+      MONGO_URI: mongodb://root:cfgmla23@mongodb:27017
+      MONGO_DB: test
+      CHATBOT_PORT: 5052
+
+    ports:
+      - "5052:5052"
+    depends_on:
+      - mongodb
+    networks:
+      - app-network
+    volumes:
+      - ./analytics:/app
+    restart: unless-stopped
+
+
   authservice:
     build:
       context: ./authservice
@@ -137,7 +161,6 @@ services:
       - "9100:9100"
     networks:
       - app-network
-
 
  
 networks:

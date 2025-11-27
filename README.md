@@ -32,20 +32,12 @@ The chatbot requires an OpenAI API key to function.
 - **Option 1 (Team):** Find the shared API key in the group's **Google Drive** → ai-chatbot openai-key.txt`
 - **Option 2 (Personal):** Generate your own key at [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)
 
-**Running the Complete Application:**
-You need **2 terminals** running simultaneously:
-
-1. **Terminal 1 - Docker Services:**
+**Running the Application:**
+Terminal - Run Docker Services:
 ```bash
    docker compose up -d --build or docker compose build --no-cache
    then
    docker compose up -d
-```
-
-2. **Terminal 2 - Chatbot Service:**
-```bash
-   cd analytics
-   python chatbot_service.py
 ```
 After logging in, look for the purple chat button (💬) in the bottom-right corner to use the AI chatbot.
 
