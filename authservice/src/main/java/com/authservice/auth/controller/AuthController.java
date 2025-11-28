@@ -145,7 +145,7 @@ public class AuthController {
 
     @GetMapping("/verify")
     public ResponseEntity<?> verifyEmail(@RequestParam String token) {
-        String userId = emailService.extractUserIdFromVerificationToken(token);
+        String userId = emailService.extractUserIdFromToken(token);
         User user = userRepository.findById(userId).orElse(null);
         if (user == null) {
             return ResponseEntity.status(404).body(new ErrorResponseDTO("User not found"));

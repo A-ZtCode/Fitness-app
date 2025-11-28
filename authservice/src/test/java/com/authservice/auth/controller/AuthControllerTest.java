@@ -317,7 +317,7 @@ public class AuthControllerTest {
     @Test
     public void verifyEmail_whenTokenIsExpired_throwsInvalidTokenException() {
         String expiredToken = "expired";
-        when(emailService.extractUserIdFromVerificationToken(expiredToken))
+        when(emailService.extractUserIdFromToken(expiredToken))
             .thenThrow(new InvalidTokenException("Invalid or expired token"));
 
         assertThrows(
@@ -329,7 +329,7 @@ public class AuthControllerTest {
     @Test
     public void verifyEmail_whenValidToken_verifiesUser() {
         final String TOKEN = "valid-verification-token";
-        when(emailService.extractUserIdFromVerificationToken(TOKEN)).thenReturn(USER_ID);
+        when(emailService.extractUserIdFromToken(TOKEN)).thenReturn(USER_ID);
 
         User user = createUser(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
         user.setId(USER_ID);
@@ -338,7 +338,7 @@ public class AuthControllerTest {
 
         ResponseEntity<?> response = authController.verifyEmail(TOKEN);
 
-        verify(emailService).extractUserIdFromVerificationToken(TOKEN);
+        verify(emailService).extractUserIdFromToken(TOKEN);
         verify(userRepository).findById(USER_ID);
         verify(userRepository).save(user);
 
