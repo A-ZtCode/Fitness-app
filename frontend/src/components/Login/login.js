@@ -177,7 +177,7 @@ const Login = ({ onLogin }) => {
         <Box sx={{ textAlign: "right" }}>
           <Button
             component={RouterLink}
-            to="/forgot-password"
+            to="/forgotten-password"
             variant="text"
             sx={{
               textTransform: "none",

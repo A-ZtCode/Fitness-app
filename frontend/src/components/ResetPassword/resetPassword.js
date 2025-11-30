@@ -100,7 +100,7 @@ const ResetPassword = () => {
         </Alert>
         <Button
           component={RouterLink}
-          to="/forgot-password"
+          to="/forgotten-password"
           variant="contained"
           fullWidth
           sx={{

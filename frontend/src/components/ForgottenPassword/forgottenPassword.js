@@ -26,7 +26,7 @@ const ForgotPassword = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:8080/api/auth/forgotten-password",
+        "http://localhost:8080/api/auth/send-reset-email",
         { email }
       );
 
@@ -90,8 +90,7 @@ const ForgotPassword = () => {
 
       {success && (
         <Alert severity="success" sx={{ mb: 2 }}>
-          Password reset email sent! Please check your inbox (or MailHog at
-          http://localhost:8025).
+          Password reset email sent! Please check your inbox.
         </Alert>
       )}
 
