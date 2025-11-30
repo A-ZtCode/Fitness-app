@@ -160,6 +160,14 @@ services:
       - "9100:9100"
     networks:
       - app-network
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "1025:1025" # SMTP server
+      - "8025:8025" # Web UI
+    networks:
+      - app-network
+
 networks:
   app-network:
     driver: bridge
