@@ -49,6 +49,35 @@ export class AnalyticsService {
   }
   
 
+  async getActivitiesRange(username, startDate, endDate, context) {
+    const { data } = await axios.get(`${this.baseURL}/api/activities/range`, {
+      params: {
+        user: username,
+        start: startDate,
+        end: endDate
+      },
+      headers: { Authorization: context.authHeader },
+      timeout: 5000
+    });
+    return data || [];
+  }
+
+
+  async updateActivityComment(activityId, comments, context) {
+  const { data } = await axios.patch(
+    `${this.baseURL}/api/activities/${activityId}`,
+    { comments },
+    {
+      headers: { Authorization: context.authHeader },
+      timeout: 5000
+    }
+  );
+
+  // data = { ok: true }
+  return data;
+}
+  
+
   async healthCheck() {
     try {
       await axios.get(`${this.baseURL}/health`, { timeout: 3000 });

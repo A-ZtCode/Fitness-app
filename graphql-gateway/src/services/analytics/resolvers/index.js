@@ -82,7 +82,7 @@ const analyticsQueryResolvers = {
 
 
   /**
-   * Get daily trend statistics for a user within date range
+   * Get daily trend statistics for a user within last 7 days
    */
   dailyTrend: async (_, { username }, context) => {
     try {
@@ -93,7 +93,53 @@ const analyticsQueryResolvers = {
       handleServiceError(error, 'fetch daily trend stats');
       return []; // Return empty array instead of null
     }
+  },
+
+
+  /**
+   * Get detailed data for activities for a user within date range (journal page)
+   */
+  activitiesRange: async (_, { username, startDate, endDate }, context) => {
+    try {
+      // Validate username and date range inputs
+      const validatedUsername = validateUsername(username);
+      const validatedDates = validateDateRange(startDate, endDate);
+      
+      return await retryWithFallback(async () => {
+        return await analyticsService.getActivitiesRange(
+          validatedUsername, 
+          validatedDates.startDate, 
+          validatedDates.endDate, 
+          context
+        );
+      });
+    } catch (error) {
+      handleServiceError(error, 'fetch activities range data');
+      return []; // Return empty array instead of null
+    }
+
+  },
+
+  updateActivityComment: async (_, { activityId, comments }, context) => {
+    try {
+      return await retryWithFallback(async () => {
+        const data = await analyticsService.updateActivityComment(
+          activityId,
+          comments,
+          context
+        );
+
+        return {
+          ok: data.ok === true,
+          message: data.ok ? "Updated successfully" : "Update failed"
+        };
+      });
+    } catch (err) {
+      handleServiceError(err, "update activity comment");
+      return { ok: false, message: err.message };
+    }
   }
+
 };
 
 /**
