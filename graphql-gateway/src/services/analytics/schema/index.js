@@ -20,6 +20,22 @@ export const analyticsTypeDefs = `#graphql
     date: String!
   }
 
+  type ActivitiesRange {
+    id: String!
+    username: String!
+    date: String!
+    time: String!
+    activityType: String!
+    duration: Int!
+    comments: String!
+    createdAt: String!
+  }
+
+  type UpdateActivityResponse {
+    ok: Boolean!
+    message: String
+  }
+
   type AnalyticsQuery {
     # Get all user statistics
     allStats: [UserStats!]!
@@ -32,6 +48,13 @@ export const analyticsTypeDefs = `#graphql
 
     # Get daily trend data (for line chart)
     dailyTrend(username: String!): [DailyTrend!]!
+
+    # Get all activities data for a user within date range (for journal page)
+    activitiesRange(username: String!, startDate: String!, endDate: String!): [ActivitiesRange!]!
+
+    # Update an activity's comment/description and return the updated activity
+    updateActivityComment(activityId: String!, comments: String!): UpdateActivityResponse!
+  
   }
 
   extend type Query {
