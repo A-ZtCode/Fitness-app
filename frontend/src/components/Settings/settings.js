@@ -5,12 +5,15 @@ import {
   Box,
   Button,
   Stack,
-  TextField,
   Typography,
   CircularProgress,
   Snackbar,
+  Divider,
+  Paper,
+  Container,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import ThemeSelector from "./ThemeSelector.js";
 
 const validateName = (value) => {
   const trimmed = value.trim();
@@ -109,7 +112,7 @@ const Settings = ({ userEmail, onLogout }) => {
       formData.firstName !== userData.firstName ||
       formData.lastName !== userData.lastName;
 
-    if (hasChanged) {
+    if (hasChanged && isEditing) {
       try {
         const payload = {
           firstName: formData.firstName,
@@ -123,7 +126,7 @@ const Settings = ({ userEmail, onLogout }) => {
 
         if (data === "User details updated successfully") {
           setSuccess("Profile updated successfully!");
-          setUserData(formData); // Update baseline
+          setUserData(formData);
           localStorage.setItem("user", JSON.stringify(formData));
           setIsEditing(false);
         } else {
@@ -161,7 +164,7 @@ const Settings = ({ userEmail, onLogout }) => {
   if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", mt: 8 }}>
-        <CircularProgress />
+        <CircularProgress sx={{ color: "var(--color-primary)" }} />
       </Box>
     );
   }
@@ -176,163 +179,288 @@ const Settings = ({ userEmail, onLogout }) => {
   };
 
   return (
-    <>
-      <Box
-        component="form"
-        onSubmit={handleToggleEdit}
-        noValidate
+    <Container maxWidth="md" sx={{ py: 4 }}>
+      <Typography
+        variant="h4"
+        gutterBottom
         sx={{
-          mt: 4,
-          maxWidth: 420,
-          mx: "auto",
+          color: "var(--text-primary)",
+          mb: 4,
+          fontWeight: 700,
+        }}
+      >
+        Settings
+      </Typography>
+
+      <Paper
+        sx={{
           p: 4,
-          backgroundColor: isEditing ? "#fff5f5" : "white",
-          borderRadius: 4,
-          boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
-          transition: "background-color 0.3s ease",
+          mb: 3,
+          backgroundColor: "var(--bg-elevated)",
+          borderRadius: "var(--radius-lg)",
+          boxShadow: "var(--shadow-md)",
+          border: "1px solid var(--border-light)",
+          transition: "all 0.3s ease",
         }}
       >
         <Typography
-          variant="h5"
-          align="center"
-          fontWeight={600}
-          mb={3}
-          color={isEditing ? "error.main" : "text.primary"}
+          variant="h6"
+          gutterBottom
+          sx={{
+            color: "var(--text-primary)",
+            mb: 3,
+            fontWeight: 600,
+          }}
         >
-          Personal Settings
+          Account Details
         </Typography>
 
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert
+            severity="error"
+            sx={{
+              mb: 2,
+              backgroundColor: "var(--color-error-bg)",
+              color: "var(--text-primary)",
+              "& .MuiAlert-icon": {
+                color: "var(--color-error)",
+              },
+            }}
+          >
             {error}
           </Alert>
         )}
         {success && (
-          <Alert severity="success" sx={{ mb: 2 }}>
+          <Alert
+            severity="success"
+            sx={{
+              mb: 2,
+              backgroundColor: "var(--color-success-bg)",
+              color: "var(--text-primary)",
+              "& .MuiAlert-icon": {
+                color: "var(--color-success)",
+              },
+            }}
+          >
             {success}
           </Alert>
         )}
 
-        <Stack spacing={2.5}>
-          {["email", "firstName", "lastName"].map((field) => {
-            const isEmailField = field === "email";
-            const label = fieldLabels[field];
-            return (
-              <TextField
-                key={field}
-                label={
-                  isEmailField ? (
-                    <Box sx={{ display: "flex", alignItems: "center" }}>
-                      {label}
-                    </Box>
+        <Box component="form" onSubmit={handleToggleEdit} noValidate>
+          <Stack spacing={3}>
+            {["email", "firstName", "lastName"].map((field) => {
+              const isEmailField = field === "email";
+              const label = fieldLabels[field];
+              const hasError =
+                isEditing &&
+                !isEmailField &&
+                (!formData[field].trim() ||
+                  !validateName(formData[field]).valid);
+
+              return (
+                <Box key={field}>
+                  <Typography
+                    component="label"
+                    htmlFor={field}
+                    sx={{
+                      display: "block",
+                      color: "var(--text-primary)",
+                      fontWeight: 600,
+                      fontSize: "0.95rem",
+                      mb: 1,
+                    }}
+                  >
+                    {label}
+                  </Typography>
+
+                  {isEmailField ? (
+                    <Typography
+                      sx={{
+                        color: "var(--text-muted)",
+                        fontSize: "1rem",
+                        py: 1.5,
+                        px: 0,
+                      }}
+                    >
+                      {formData.email}
+                    </Typography>
                   ) : (
-                    label
-                  )
-                }
-                variant="standard"
-                fullWidth
-                name={field}
-                type="text"
-                value={formData[field]}
-                onChange={handleInputChange}
-                InputProps={{
-                  readOnly: isEmailField ? true : !isEditing,
-                  sx: isEmailField
-                    ? {
-                        "&:before, &:after": {
-                          borderBottom: "none",
+                    <Box
+                      component="input"
+                      id={field}
+                      name={field}
+                      type="text"
+                      value={formData[field]}
+                      onChange={handleInputChange}
+                      disabled={!isEditing}
+                      sx={{
+                        width: "100%",
+                        padding: "14px 16px",
+                        fontSize: "1rem",
+                        fontFamily: "inherit",
+                        color: "var(--text-primary)",
+                        backgroundColor: isEditing
+                          ? "var(--bg-primary)"
+                          : "var(--bg-secondary)",
+                        border: hasError
+                          ? "2px solid var(--color-error)"
+                          : "1px solid var(--border-medium)",
+                        borderRadius: "8px",
+                        outline: "none",
+                        transition: "all 0.3s ease",
+                        "&:hover": {
+                          borderColor: isEditing
+                            ? "var(--color-primary)"
+                            : "var(--border-medium)",
                         },
-                        "&:hover:not(.Mui-disabled, .Mui-error):before": {
-                          borderBottom: "none",
+                        "&:focus": {
+                          borderColor: "var(--color-primary)",
+                          borderWidth: "2px",
                         },
-                        "& .MuiInputBase-input": {
+                        "&:disabled": {
+                          backgroundColor: "var(--bg-secondary)",
+                          color: "var(--text-muted)",
                           cursor: "not-allowed",
-                          color: "text.secondary",
                         },
-                      }
-                    : {},
-                }}
-                InputLabelProps={
-                  isEmailField
-                    ? {
-                        sx: {
-                          color: "#9e9e9e",
-                          "&.Mui-focused": {
-                            color: "#9e9e9e",
-                          },
-                          "&.Mui-error": { color: "#9e9e9e" },
-                        },
-                      }
-                    : {}
-                }
-                required={!isEmailField}
-                error={
-                  (isEditing && !isEmailField && !formData[field].trim()) ||
-                  !validateName(formData[field]).valid
-                }
-                helperText={
-                  !isEmailField && isEditing && !formData[field].trim()
-                    ? "This field is required"
-                    : isEditing &&
-                      !isEmailField &&
-                      !validateName(formData[field]).valid
-                    ? validateName(formData[field]).message
-                    : ""
-                }
-              />
-            );
-          })}
+                      }}
+                    />
+                  )}
 
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={isEditing && isSaveDisabled}
-            sx={{
-              mt: 3,
-              borderRadius: "30px",
-              py: 1.5,
-              fontWeight: "bold",
-              backgroundColor: isEditing ? "#d32f2f" : "var(--color-primary)",
-              transition: "background-color 0.3s ease, color 0.3s ease",
-              color: "#fff",
+                  {(hasError || isEmailField) && (
+                    <Typography
+                      sx={{
+                        color: hasError
+                          ? "var(--color-error)"
+                          : "var(--text-muted)",
+                        fontSize: "0.875rem",
+                        mt: 0.5,
+                      }}
+                    >
+                      {hasError
+                        ? !formData[field].trim()
+                          ? "This field is required"
+                          : validateName(formData[field]).message
+                        : ""}
+                    </Typography>
+                  )}
+                </Box>
+              );
+            })}
 
-              "&.Mui-disabled": {
-                backgroundColor: "#bdbdbd !important",
-                color: "#757575 !important",
-                pointerEvents: "none",
-                boxShadow: "none",
-              },
-
-              "&:hover": {
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={isEditing && isSaveDisabled}
+              sx={{
+                mt: 2,
+                borderRadius: "30px",
+                py: 1.5,
+                fontWeight: 700,
+                fontSize: "1rem",
                 backgroundColor: isEditing
-                  ? "#b71c1c"
-                  : "var(--color-primary-600)",
-              },
-            }}
-          >
-            {isEditing ? "Save" : "Edit"}
-          </Button>
+                  ? "var(--color-success)"
+                  : "var(--color-primary)",
+                color: "#FFFFFF",
+                textTransform: "none",
+                boxShadow: "var(--shadow-md)",
+                transition: "all 0.3s ease",
 
-          <Button
-            variant="outlined"
-            color="error"
-            onClick={handleSignOut}
-            sx={{
-              mt: 2,
-              borderRadius: "30px",
-              py: 1.2,
-              fontWeight: "bold",
-              borderWidth: 2,
-              "&:hover": {
-                borderWidth: 2,
-                backgroundColor: "#fff5f5",
-              },
-            }}
-          >
-            Sign Out
-          </Button>
-        </Stack>
-      </Box>
+                "&.Mui-disabled": {
+                  backgroundColor: "var(--border-medium)",
+                  color: "var(--text-muted)",
+                  opacity: 0.6,
+                },
+
+                "&:hover": {
+                  backgroundColor: isEditing
+                    ? "#047857"
+                    : "var(--color-primary-hover)",
+                  boxShadow: "var(--shadow-lg)",
+                  transform: "translateY(-1px)",
+                },
+
+                "&:active": {
+                  transform: "translateY(0)",
+                },
+              }}
+            >
+              {isEditing ? "Save Changes" : "Edit Profile"}
+            </Button>
+          </Stack>
+        </Box>
+      </Paper>
+
+      <Divider sx={{ my: 3, borderColor: "var(--border-light)" }} />
+
+      <Paper
+        sx={{
+          p: 4,
+          mb: 3,
+          backgroundColor: "var(--bg-elevated)",
+          borderRadius: "var(--radius-lg)",
+          boxShadow: "var(--shadow-md)",
+          border: "1px solid var(--border-light)",
+          transition: "all 0.3s ease",
+        }}
+      >
+        <ThemeSelector />
+      </Paper>
+
+      <Divider sx={{ my: 3, borderColor: "var(--border-light)" }} />
+
+      <Paper
+        sx={{
+          p: 4,
+          backgroundColor: "var(--bg-elevated)",
+          borderRadius: "var(--radius-lg)",
+          boxShadow: "var(--shadow-md)",
+          border: "1px solid var(--border-light)",
+          transition: "all 0.3s ease",
+        }}
+      >
+        <Typography
+          variant="h6"
+          gutterBottom
+          sx={{
+            color: "var(--text-primary)",
+            mb: 2,
+            fontWeight: 600,
+          }}
+        >
+          Account Actions
+        </Typography>
+
+        <Button
+          variant="outlined"
+          onClick={handleSignOut}
+          sx={{
+            mt: 2,
+            borderRadius: "30px",
+            py: 1.2,
+            px: 3,
+            fontWeight: 700,
+            fontSize: "1rem",
+            borderWidth: "2px",
+            borderColor: "var(--color-error)",
+            color: "var(--color-error)",
+            textTransform: "none",
+            transition: "all 0.3s ease",
+
+            "&:hover": {
+              borderWidth: "2px",
+              borderColor: "var(--color-error)",
+              backgroundColor: "var(--color-error-bg)",
+              transform: "translateY(-1px)",
+            },
+
+            "&:active": {
+              transform: "translateY(0)",
+            },
+          }}
+        >
+          Sign Out
+        </Button>
+      </Paper>
 
       <Snackbar
         open={logoutSnackbar}
@@ -343,12 +471,20 @@ const Settings = ({ userEmail, onLogout }) => {
         <Alert
           onClose={handleCloseSnackbar}
           severity="success"
-          sx={{ width: "100%" }}
+          sx={{
+            width: "100%",
+            backgroundColor: "var(--color-success)",
+            color: "#FFFFFF",
+            fontWeight: 600,
+            "& .MuiAlert-icon": {
+              color: "#FFFFFF",
+            },
+          }}
         >
           You have been logged out successfully.
         </Alert>
       </Snackbar>
-    </>
+    </Container>
   );
 };
 

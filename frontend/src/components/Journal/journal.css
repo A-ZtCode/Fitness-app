@@ -16,19 +16,16 @@
 }
 
 /* --- Main Container --- */
+
 .journal-container {
-  max-width: 800px;
-  margin: 2rem auto;
-  padding: 2rem;
-  background-color: var(--color-bg-white);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+  background-color: var(--bg-elevated);
+  /* other existing styles */
 }
 
 .journal-title {
-  font-size: 1.875rem;
+  color: var(--text-primary);
+  font-size: 1.75rem;
   font-weight: 700;
-  color: var(--color-text-dark);
   margin-bottom: 1.5rem;
 }
 
@@ -54,19 +51,20 @@
   font-weight: 500;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
-  background-color: var(--color-bg-white);
-  color: var(--color-text-light);
+  background-color: transparent;
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .filter-btn:hover {
-  background-color: var(--color-bg-light);
+  background-color: var(--bg-secondary);
+  border-color: var(--color-primary);
 }
 
 .filter-btn.active {
   background-color: var(--color-primary);
-  color: var(--color-text-white);
+  color: #ffffff;
   border-color: var(--color-primary);
 }
 
@@ -79,24 +77,26 @@
   font-weight: 500;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
-  background-color: var(--color-bg-white);
-  color: var(--color-text-light);
+  background-color: var(--bg-elevated);
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .custom-range-btn:hover {
-  background-color: var(--color-bg-light);
+  background-color: var(--bg-secondary);
+  border-color: var(--color-primary);
 }
 
 .custom-range-btn .calendar-icon {
   width: 16px;
   height: 16px;
+  color: var(--text-primary);
 }
 
 .custom-range-btn.active {
-  background-color: var(--color-primary-light);
-  color: var(--color-primary-dark);
+  background-color: var(--color-primary);
+  color: #ffffff;
   border-color: var(--color-primary);
 }
 
@@ -115,7 +115,7 @@
   font-size: 1.125rem;
   /* 18px */
   font-weight: 600;
-  color: var(--color-text-dark);
+  color: var(--text-primary);
   margin-bottom: 0.25rem;
 }
 
@@ -330,120 +330,128 @@ body.modal-open {
 
 /* --- Day Group with Collapsible Header --- */
 .day-group {
-    margin-bottom: 1.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .day-heading {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: var(--color-text-white);
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-    padding: 1rem 1.5rem;
-    margin-bottom: 0;
-    border: none;
-    border-radius: var(--radius-lg);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    text-align: left;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text-white);
+  background: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-primary-dark) 100%
+  );
+  padding: 1rem 1.5rem;
+  margin-bottom: 0;
+  border: none;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: left;
 }
 
 .day-heading:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-dark) 0%,
+    var(--color-primary) 100%
+  );
 }
 
 .day-heading:active {
-    transform: translateY(0);
+  transform: translateY(0);
 }
 
 .day-heading-text {
-    font-size: 1.125rem;
-    font-weight: 600;
+  font-size: 1.125rem;
+  font-weight: 600;
 }
 
 .day-heading-meta {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
 .activity-count {
-    font-size: 0.875rem;
-    font-weight: 500;
-    opacity: 0.9;
-    background-color: rgba(255, 255, 255, 0.2);
-    padding: 0.25rem 0.75rem;
-    border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  opacity: 0.9;
+  background-color: rgba(255, 255, 255, 0.2);
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
 }
 
 .chevron-icon {
-    transition: transform 0.3s ease;
-    flex-shrink: 0;
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
 }
 
 .chevron-icon.expanded {
-    transform: rotate(0deg);
+  transform: rotate(0deg);
 }
 
 .chevron-icon.collapsed {
-    transform: rotate(-90deg);
+  transform: rotate(-90deg);
 }
 
 /* Activities container with smooth animation */
 .day-activities {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    padding-top: 1rem;
-    animation: slideDown 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-top: 1rem;
+  animation: slideDown 0.3s ease-out;
 }
 
 @keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Update to activity card margins since they're now inside day-activities */
 .day-activities .activity-card:last-child {
-    margin-bottom: 0;
+  margin-bottom: 0;
 }
 
 /* --- Collapse/Expand All Controls --- */
 .collapse-controls {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 
 .collapse-all-btn,
 .expand-all-btn {
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
-    background-color: var(--color-bg-white);
-    color: var(--color-text-light);
-    cursor: pointer;
-    transition: all 0.2s ease;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg-white);
+  color: var(--color-text-light);
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .collapse-all-btn:hover,
 .expand-all-btn:hover {
-    background-color: var(--color-bg-light);
-    border-color: var(--color-primary);
-    color: var(--color-primary);
+  background-color: var(--color-bg-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }

@@ -1,33 +1,46 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Button, Form, OverlayTrigger, Tooltip } from 'react-bootstrap';
-import { trackExercise, getCustomActivities, createCustomActivity, deleteCustomActivity } from '../api.js';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import { IconButton } from '@mui/material';
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Box,
+  FormControl,
+  IconButton,
+  Typography,
+  Tooltip,
+  MenuItem,
+  Button as MuiButton,
+  Select,
+  TextField,
+} from "@mui/material";
+import {
+  trackExercise,
+  getCustomActivities,
+  createCustomActivity,
+} from "../api.js";
+
+import "bootstrap/dist/css/bootstrap.min.css";
 import MicIcon from "@mui/icons-material/Mic";
 import MicOffIcon from "@mui/icons-material/MicOff";
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import PauseIcon from '@mui/icons-material/Pause';
-import StopIcon from '@mui/icons-material/Stop';
-import TimerIcon from '@mui/icons-material/Timer';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { enGB } from 'date-fns/locale';
-import CustomActivityModal from './CustomActivityModal.js';
-import './dropdown-activity-selector.css';
-import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
-
-
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import PauseIcon from "@mui/icons-material/Pause";
+import StopIcon from "@mui/icons-material/Stop";
+import TimerIcon from "@mui/icons-material/Timer";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import FitnessCenterIcon from "@mui/icons-material/FitnessCenter";
+import AddIcon from "@mui/icons-material/Add";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { enGB } from "date-fns/locale";
+import CustomActivityModal from "./CustomActivityModal.js";
+import "./dropdown-activity-selector.css";
 
 const TrackExercise = ({ currentUser }) => {
   const [state, setState] = useState({
-    exerciseType: '',
-    description: '',
+    exerciseType: "",
+    description: "",
     duration: 0,
     date: new Date(),
   });
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
   const [customActivities, setCustomActivities] = useState([]);
   const [showCustomActivityModal, setShowCustomActivityModal] = useState(false);
 
@@ -46,27 +59,32 @@ const TrackExercise = ({ currentUser }) => {
       const response = await getCustomActivities(currentUser);
       setCustomActivities(response.data);
     } catch (error) {
-      console.error('Error fetching custom activities:', error);
-      setCustomActivities([]);  // Set to empty array on error
+      console.error("Error fetching custom activities:", error);
+      setCustomActivities([]);
     }
   };
 
   const handleActivityCreated = (newActivity) => {
-    setCustomActivities(prev => [...prev, newActivity]);
-    setState(prev => ({ ...prev, exerciseType: newActivity.activityName }));
-    setMessage(`✅ Custom activity "${newActivity.activityName}" created successfully!`);
-    setTimeout(() => setMessage(''), 3000);
+    setCustomActivities((prev) => [...prev, newActivity]);
+    setState((prev) => ({ ...prev, exerciseType: newActivity.activityName }));
+    setMessage(
+      `✅ Custom activity "${newActivity.activityName}" created successfully!`
+    );
+    setTimeout(() => setMessage(""), 3000);
   };
 
   const handleSpeechParse = async (transcript) => {
     try {
-      const response = await fetch("http://localhost:5051/speech_to_text_parser", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ transcript }),
-      });
+      const response = await fetch(
+        "http://localhost:5051/speech_to_text_parser",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ transcript }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`Server error: ${response.status}`);
@@ -77,93 +95,87 @@ const TrackExercise = ({ currentUser }) => {
       console.log("Parsed activity:", parsed);
 
       if (parsed) {
-        // Validate that we have the essential data
-        if (!parsed.exerciseType || !parsed.duration || !parsed.date || !parsed.description) {
-          alert("❗ That doesn't look like a valid fitness activity or it is missing some details (activity type, duration, date, description). Please try again.");
+        if (
+          !parsed.exerciseType ||
+          !parsed.duration ||
+          !parsed.date ||
+          !parsed.description
+        ) {
+          alert(
+            "❗ That doesn't look like a valid fitness activity or it is missing some details. Please try again."
+          );
           return;
         }
 
-        /* ====================================================================
-           AUTO-CREATE CUSTOM ACTIVITY IF IT DOESN'T EXIST
-           ==================================================================== */
-
-        // Get all available activities (default + custom)
         const allDefaultActivities = [];
-        activityCategories.forEach(category => {
-          category.activities.forEach(activity => {
+        activityCategories.forEach((category) => {
+          category.activities.forEach((activity) => {
             allDefaultActivities.push(activity.value);
           });
         });
 
-        const customActivityNames = customActivities.map(ca => ca.activityName);
+        const customActivityNames = customActivities.map(
+          (ca) => ca.activityName
+        );
         const allActivities = [...allDefaultActivities, ...customActivityNames];
 
-        // Check if activity exists (case-insensitive)
         const activityExists = allActivities.some(
-          activity => activity.toLowerCase() === parsed.exerciseType.toLowerCase()
+          (activity) =>
+            activity.toLowerCase() === parsed.exerciseType.toLowerCase()
         );
 
-        // If activity doesn't exist and it's not "Unknown", auto-create it
-        if (!activityExists && parsed.exerciseType !== 'Unknown') {
+        if (!activityExists && parsed.exerciseType !== "Unknown") {
           try {
-            console.log(`Auto-creating custom activity: ${parsed.exerciseType}`);
+            console.log(
+              `Auto-creating custom activity: ${parsed.exerciseType}`
+            );
             setMessage(`Creating custom activity: ${parsed.exerciseType}...`);
 
-            // Create the custom activity
             await createCustomActivity({
               username: currentUser,
-              activityName: parsed.exerciseType
+              activityName: parsed.exerciseType,
             });
 
             console.log(`Successfully created: ${parsed.exerciseType}`);
-
-            // Refresh the custom activities list
             await fetchCustomActivities();
+            await new Promise((resolve) => setTimeout(resolve, 200));
 
-            // Small delay to ensure state updates
-            await new Promise(resolve => setTimeout(resolve, 200));
-
-            setMessage(`✅ Created "${parsed.exerciseType}" and populated form!`);
-
+            setMessage(
+              `✅ Created "${parsed.exerciseType}" and populated form!`
+            );
           } catch (error) {
-            console.error('Error auto-creating activity:', error);
+            console.error("Error auto-creating activity:", error);
 
-            // Check if it's a duplicate error (activity was just created)
-            if (error.response?.data?.error?.includes('already exists')) {
-              console.log('Activity already exists, continuing...');
-              await fetchCustomActivities(); // Refresh list anyway
+            if (error.response?.data?.error?.includes("already exists")) {
+              console.log("Activity already exists, continuing...");
+              await fetchCustomActivities();
               setMessage(`✅ Activity "${parsed.exerciseType}" found!`);
-            } else if (error.response?.data?.error?.includes('maximum')) {
-              setMessage(`⚠️ Maximum custom activities (10) reached. Please delete one first.`);
-              return; // Don't populate form
+            } else if (error.response?.data?.error?.includes("maximum")) {
+              setMessage(
+                `⚠️ Maximum custom activities (10) reached. Please delete one first.`
+              );
+              return;
             } else {
-              setMessage(`⚠️ Could not create "${parsed.exerciseType}". Add it manually.`);
-              return; // Don't populate form if creation failed
+              setMessage(
+                `⚠️ Could not create "${parsed.exerciseType}". Add it manually.`
+              );
+              return;
             }
           }
         }
 
-        /* ====================================================================
-            POPULATE FORM WITH PARSED DATA
-           ==================================================================== */
-
-        // Parse date
         let parsedDate = null;
         if (parsed.date) {
-          const parts = parsed.date.split('/');
+          const parts = parsed.date.split("/");
           const year = parseInt(parts[0]);
           const monthIndex = parseInt(parts[1]) - 1;
           const day = parseInt(parts[2]);
-          const hour = 3;
-          const minute = 0;
-          const second = 0;
-          parsedDate = new Date(year, monthIndex, day, hour, minute, second);
+          parsedDate = new Date(year, monthIndex, day, 3, 0, 0);
         } else {
           parsedDate = new Date();
         }
 
-        // Set form state
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           exerciseType: parsed.exerciseType || prev.exerciseType,
           duration: parsed.duration || prev.duration,
@@ -171,17 +183,15 @@ const TrackExercise = ({ currentUser }) => {
           date: parsedDate || prev.date,
         }));
 
-        // Show success message if activity already existed
         if (activityExists) {
           setMessage(`✅ Parsed from speech: ${parsed.exerciseType}`);
         }
-
       } else {
         alert("❗ Could not parse activity. Please try again.");
       }
     } catch (err) {
       console.error("Parsing failed:", err);
-      setMessage('❌ Speech parsing failed. Please try again.');
+      setMessage("❌ Speech parsing failed. Please try again.");
     }
   };
 
@@ -221,7 +231,6 @@ const TrackExercise = ({ currentUser }) => {
     };
 
     recognitionRef.current = recognition;
-
   }, []);
 
   const toggleListening = () => {
@@ -241,26 +250,26 @@ const TrackExercise = ({ currentUser }) => {
     }
   };
 
-
   // Timer state
-  const [timerMode, setTimerMode] = useState('manual');
-  const [timerState, setTimerState] = useState('stopped');
+  const [timerMode, setTimerMode] = useState("manual");
+  const [timerState, setTimerState] = useState("stopped");
   const [timerSeconds, setTimerSeconds] = useState(0);
-  const [displayTime, setDisplayTime] = useState('00:00:00');
+  const [displayTime, setDisplayTime] = useState("00:00:00");
   const intervalRef = useRef(null);
-
   // Timer functions
   const formatTime = (seconds) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${hours.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
   const startTimer = () => {
-    setTimerState('running');
+    setTimerState("running");
     intervalRef.current = setInterval(() => {
-      setTimerSeconds(prev => {
+      setTimerSeconds((prev) => {
         const newSeconds = prev + 1;
         setDisplayTime(formatTime(newSeconds));
         return newSeconds;
@@ -269,25 +278,25 @@ const TrackExercise = ({ currentUser }) => {
   };
 
   const pauseTimer = () => {
-    setTimerState('paused');
+    setTimerState("paused");
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
   };
 
   const stopTimer = () => {
-    setTimerState('stopped');
+    setTimerState("stopped");
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
     const durationInMinutes = Math.round(timerSeconds / 60);
-    setState(prev => ({ ...prev, duration: durationInMinutes }));
+    setState((prev) => ({ ...prev, duration: durationInMinutes }));
   };
 
   const resetTimer = () => {
     setTimerSeconds(0);
-    setDisplayTime('00:00:00');
-    setTimerState('stopped');
+    setDisplayTime("00:00:00");
+    setTimerState("stopped");
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
@@ -312,19 +321,19 @@ const TrackExercise = ({ currentUser }) => {
     try {
       const response = await trackExercise(dataToSubmit);
       console.log(response.data);
-      setMessage('✅ Exercise tracked successfully!');
+      setMessage("✅ Exercise tracked successfully!");
       setState({
-        exerciseType: '',
-        description: '',
+        exerciseType: "",
+        description: "",
         duration: 0,
         date: new Date(),
       });
-      if (timerMode === 'timer') {
+      if (timerMode === "timer") {
         resetTimer();
       }
     } catch (error) {
       console.log(error);
-      setMessage('❌ Failed to track exercise. Please try again.');
+      setMessage("❌ Failed to track exercise. Please try again.");
     }
   };
 
@@ -338,14 +347,24 @@ const TrackExercise = ({ currentUser }) => {
         { value: "Swimming", label: "🏊 Swimming", emoji: "🏊" },
         { value: "Gym", label: "🏋️ Gym", emoji: "🏋️" },
         { value: "Walking", label: "🚶 Walking", emoji: "🚶" },
-      ]
+      ],
     },
     {
       label: "Inclusive & Accessible",
       activities: [
-        { value: "Wheelchair Run Pace", label: "♿ Wheelchair Run Pace", emoji: "♿", accessible: true },
-        { value: "Wheelchair Walk Pace", label: "♿ Wheelchair Walk Pace", emoji: "♿", accessible: true },
-      ]
+        {
+          value: "Wheelchair Run Pace",
+          label: "♿ Wheelchair Run Pace",
+          emoji: "♿",
+          accessible: true,
+        },
+        {
+          value: "Wheelchair Walk Pace",
+          label: "♿ Wheelchair Walk Pace",
+          emoji: "♿",
+          accessible: true,
+        },
+      ],
     },
     {
       label: "Mind & Body",
@@ -353,28 +372,35 @@ const TrackExercise = ({ currentUser }) => {
         { value: "Stretching", label: "🧘 Stretching", emoji: "🧘" },
         { value: "Yoga", label: "🧘 Yoga", emoji: "🧘" },
         { value: "Mind & Body", label: "🧠 Mind & Body", emoji: "🧠" },
-      ]
+      ],
     },
     {
       label: "Strength & Cardio",
       activities: [
-        { value: "Functional Strength", label: "💪 Functional Strength", emoji: "💪" },
+        {
+          value: "Functional Strength",
+          label: "💪 Functional Strength",
+          emoji: "💪",
+        },
         { value: "Core Training", label: "🎯 Core Training", emoji: "🎯" },
         { value: "HIIT", label: "⚡ HIIT", emoji: "⚡" },
         { value: "Dance", label: "💃 Dance", emoji: "💃" },
-      ]
-    }
+      ],
+    },
   ];
-
   // Get selected activity emoji for display
   const getSelectedActivityEmoji = () => {
     // Check custom activities first
-    const customActivity = customActivities.find(a => a.activityName === state.exerciseType);
+    const customActivity = customActivities.find(
+      (a) => a.activityName === state.exerciseType
+    );
     if (customActivity) return "⭐";
 
     // Check default activities
     for (const category of activityCategories) {
-      const activity = category.activities.find(a => a.value === state.exerciseType);
+      const activity = category.activities.find(
+        (a) => a.value === state.exerciseType
+      );
       if (activity) return activity.emoji;
     }
     return "";
@@ -383,13 +409,22 @@ const TrackExercise = ({ currentUser }) => {
   // Tooltip Helper Renderers
   const renderMicTooltip = (props) => (
     <Tooltip id="mic-tooltip" {...props}>
-      {listening ? "Stop Recording and Parse Activity" : <>Use Voice Command<br />(e.g., 'I ran 30 minutes yesterday at the park')</>}
+      {listening ? (
+        "Stop Recording and Parse Activity"
+      ) : (
+        <>
+          Use Voice Command
+          <br />
+          (e.g., 'I ran 30 minutes yesterday at the park')
+        </>
+      )}
     </Tooltip>
   );
 
   const renderModeSwitchTooltip = (props) => (
     <Tooltip id="mode-switch-tooltip" {...props}>
-      Switch to {timerMode === "manual" ? "Live Timer Mode" : "Manual Duration Entry"}
+      Switch to{" "}
+      {timerMode === "manual" ? "Live Timer Mode" : "Manual Duration Entry"}
     </Tooltip>
   );
 
@@ -405,237 +440,600 @@ const TrackExercise = ({ currentUser }) => {
     </Tooltip>
   );
 
-
   return (
-    <div className="track-exercise-container">
-      <div className="track-exercise-header">
-        <h3 className="page-title">Track Exercise</h3>
+    <Box sx={{ maxWidth: 800, mx: "auto", py: 3 }}>
+      {/* Header */}
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 3,
+        }}
+      >
+        <Typography
+          variant="h4"
+          sx={{
+            color: "var(--text-primary)",
+            fontWeight: 700,
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+          }}
+        >
+          <FitnessCenterIcon sx={{ fontSize: 32 }} />
+          Track Exercise
+        </Typography>
 
-        <OverlayTrigger placement="bottom" delay={{ show: 250, hide: 400 }} overlay={renderMicTooltip}>
-          <IconButton
-            onClick={toggleListening}
-            className={`mic-button small ${listening ? "active" : ""}`}
-            size="medium"
-            aria-label="Record activity with voice"
-          >
-            {listening ? <MicOffIcon fontSize="small" /> : <MicIcon fontSize="small" />}
-          </IconButton>
-        </OverlayTrigger>
-      </div>
+        <IconButton
+          onClick={toggleListening}
+          sx={{
+            backgroundColor: listening
+              ? "var(--color-error)"
+              : "var(--color-primary)",
+            color: "#FFFFFF",
+            width: 48,
+            height: 48,
+            "&:hover": {
+              backgroundColor: listening
+                ? "#b71c1c"
+                : "var(--color-primary-hover)",
+            },
+            transition: "all 0.3s ease",
+          }}
+          aria-label="Record activity with voice"
+        >
+          {listening ? <MicOffIcon /> : <MicIcon />}
+        </IconButton>
+      </Box>
 
+      {/* Speech Textarea */}
       {listening && (
-        <textarea
-          className="speech-textarea"
+        <TextField
           value={transcript}
           onChange={(e) => setTranscript(e.target.value)}
           placeholder="Your speech will appear here..."
+          multiline
           rows={3}
-          readOnly
+          fullWidth
+          InputProps={{
+            readOnly: true,
+            sx: {
+              backgroundColor: "var(--bg-secondary)",
+              color: "var(--text-primary)",
+              mb: 3,
+            },
+          }}
         />
       )}
 
-      <div>
-        <Form onSubmit={onSubmit} className="exercise-form">
-
-          {/* Date */}
-          <Form.Group controlId="formDate" className="form-section">
-            <Form.Label>Date</Form.Label>
-            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={enGB}>
-              <DatePicker
-                value={state.date}
-                onChange={(date) => setState({ ...state, date })}
-                maxDate={new Date()}
-                renderInput={(params) => <Form.Control {...params} />}
-                inputFormat="dd/MM/yyyy"
-              />
-            </LocalizationProvider>
-          </Form.Group>
-
-
-          {/* Activity Type - DROPDOWN VERSION */}
-          <Form.Group controlId="formActivityType" className="form-section">
-            <Form.Label className="activity-selector-label">
-              <FitnessCenterIcon className="activity-label-icon" />
-              Select Activity
-              {state.exerciseType && (
-                <span className="selected-activity-badge">
-                  {getSelectedActivityEmoji()} {state.exerciseType}
-                </span>
-              )}
-            </Form.Label>
-
-            <Form.Select
-              value={state.exerciseType}
-              onChange={(e) => setState({ ...state, exerciseType: e.target.value })}
-              required
-              className="activity-dropdown"
-              aria-label="Select activity type"
-            >
-              <option value="">Choose an activity...</option>
-
-              {activityCategories.map((category, idx) => (
-                <optgroup key={idx} label={category.label}>
-                  {category.activities.map((activity) => (
-                    <option
-                      key={activity.value}
-                      value={activity.value}
-                      data-accessible={activity.accessible ? "true" : "false"}
-                    >
-                      {activity.label}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-
-              {customActivities.length > 0 && (
-                <optgroup label="My Custom Activities">
-                  {customActivities.map((activity) => (
-                    <option key={activity._id} value={activity.activityName}>
-                      ⭐ {activity.activityName}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-            </Form.Select>
-
-            <div className="activity-actions">
-              <Button
-                variant="outline-primary"
-                size="sm"
-                className="add-custom-btn"
-                onClick={() => setShowCustomActivityModal(true)}
-                type="button"
-              >
-                ➕ Add Custom Activity
-              </Button>
-
-              {customActivities.length > 0 && (
-                <span className="custom-count-badge">
-                  {customActivities.length} custom {customActivities.length === 1 ? 'activity' : 'activities'}
-                </span>
-              )}
-            </div>
-          </Form.Group>
-
-          {/* Description */}
-          <Form.Group controlId="description" className="form-section">
-            <Form.Label>Description</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={3}
-              required
-              placeholder="Add details about your activity..."
-              value={state.description}
-              onChange={(e) => setState({ ...state, description: e.target.value })}
+      {/* Form */}
+      <Box component="form" onSubmit={onSubmit}>
+        {/* Date Field */}
+        <Box
+          sx={{
+            backgroundColor: "var(--bg-elevated)",
+            borderRadius: "var(--radius-md)",
+            border: "1px solid var(--border-light)",
+            p: 3,
+            mb: 3,
+          }}
+        >
+          <Typography
+            variant="h6"
+            sx={{
+              color: "var(--text-primary)",
+              fontWeight: 600,
+              mb: 2,
+            }}
+          >
+            Date
+          </Typography>
+          <LocalizationProvider
+            dateAdapter={AdapterDateFns}
+            adapterLocale={enGB}
+          >
+            <DatePicker
+              value={state.date}
+              onChange={(date) => setState({ ...state, date })}
+              maxDate={new Date()}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  InputProps: {
+                    sx: {
+                      backgroundColor: "var(--bg-secondary)",
+                      color: "var(--text-primary)",
+                      borderRadius: "var(--radius-sm)",
+                      border: "1px solid var(--border-medium)",
+                      "& .MuiOutlinedInput-notchedOutline": {
+                        border: "none",
+                      },
+                    },
+                  },
+                },
+                openPickerIcon: {
+                  sx: {
+                    color: "var(--text-primary)", // Makes the calendar icon visible
+                  },
+                },
+              }}
             />
-          </Form.Group>
+          </LocalizationProvider>
+        </Box>
 
-          {/* Duration */}
-          <Form.Group controlId="duration" className="form-section">
-            <div className="duration-header">
-              <Form.Label>Duration (minutes)</Form.Label>
-              <OverlayTrigger placement="left" delay={{ show: 250, hide: 400 }} overlay={renderModeSwitchTooltip}>
-                <Button
-                  variant="outline-primary"
-                  className="toggle-mode-btn"
-                  onClick={() => {
-                    if (timerMode === "timer") stopTimer();
-                    setTimerMode(timerMode === "manual" ? "timer" : "manual")
+        {/* Activity Selector */}
+        <Box
+          sx={{
+            backgroundColor: "var(--bg-elevated)",
+            borderRadius: "var(--radius-md)",
+            border: "1px solid var(--border-light)",
+            p: 3,
+            mb: 3,
+          }}
+        >
+          <FormControl fullWidth>
+            <Typography
+              variant="h6"
+              sx={{
+                color: "var(--text-primary)",
+                fontWeight: 600,
+                mb: 2,
+              }}
+            >
+              Select Activity
+            </Typography>
+            <Select
+              value={state.exerciseType}
+              onChange={(e) =>
+                setState({ ...state, exerciseType: e.target.value })
+              }
+              displayEmpty
+              required
+              sx={{
+                backgroundColor: "var(--bg-secondary)",
+                color: "var(--text-primary)",
+                borderRadius: "var(--radius-sm)",
+                border: "1px solid var(--border-medium)",
+                "& .MuiOutlinedInput-notchedOutline": {
+                  border: "none",
+                },
+                "&:hover": {
+                  borderColor: "var(--color-primary)",
+                },
+                "&.Mui-focused": {
+                  borderColor: "var(--color-primary)",
+                  borderWidth: "2px",
+                },
+              }}
+              MenuProps={{
+                PaperProps: {
+                  sx: {
+                    backgroundColor: "var(--bg-elevated)",
+                    border: "1px solid var(--border-light)",
+                    maxHeight: 400,
+                    "& .MuiMenuItem-root": {
+                      color: "var(--text-primary)",
+                      "&:hover": {
+                        backgroundColor: "rgba(66, 133, 244, 0.2)",
+                      },
+                      "&.Mui-selected": {
+                        backgroundColor: "var(--color-primary)",
+                        color: "#FFFFFF",
+                        "&:hover": {
+                          backgroundColor: "var(--color-primary-hover)",
+                        },
+                      },
+                    },
+                    "& .MuiListSubheader-root": {
+                      color: "var(--text-secondary)",
+                      fontWeight: 600,
+                      backgroundColor: "var(--bg-secondary)",
+                    },
+                  },
+                },
+              }}
+            >
+              <MenuItem value="" disabled>
+                <em
+                  style={{
+                    color: "var(--text-primary)",
+                    fontStyle: "normal",
+                    fontWeight: 500,
                   }}
                 >
-                  {timerMode === "manual" ? (
-                    <>
-                      <TimerIcon style={{ marginRight: "6px" }} />
-                      Live Timer
-                    </>
-                  ) : (
-                    <>
-                      <AccessTimeIcon style={{ marginRight: "6px" }} />
-                      Manual Entry
-                    </>
-                  )}
-                </Button>
-              </OverlayTrigger>
-            </div>
+                  Choose an activity...
+                </em>
+              </MenuItem>
 
-            {timerMode === "manual" ? (
-              <div className="duration-input-container">
-                <Form.Control
-                  type="number"
-                  required
-                  value={state.duration}
-                  onChange={(e) => setState({ ...state, duration: e.target.value })}
-                  placeholder="Duration in minutes"
-                  className="duration-input"
-                />
-              </div>
-            ) : (
-              <div className="timer-container">
-                <div className={`timer-display ${timerState}`}>{displayTime}</div>
-                <div className="timer-controls">
-                  {(timerState === "stopped" || timerState === "paused") && (
-                    <OverlayTrigger
-                      placement="bottom"
-                      delay={{ show: 250, hide: 400 }}
-                      overlay={(props) => renderTimerTooltip(timerState === "stopped" ? "Start" : "Resume", props)}
-                    >
-                      <Button
-                        variant="primary"
-                        onClick={startTimer}
-                        style={{ minWidth: '100px' }}
-                      >
-                        {timerState === "stopped" ?
-                          (<> <PlayArrowIcon style={{ marginRight: "5px" }} /> Start </>) :
-                          (<> <PlayArrowIcon style={{ marginRight: "5px" }} /> Resume </>)
-                        }
-                      </Button>
-                    </OverlayTrigger>
-                  )}
+              {activityCategories.map((category, idx) => [
+                <MenuItem
+                  key={`header-${idx}`}
+                  disabled
+                  sx={{
+                    opacity: 1,
+                    fontWeight: 700,
+                    color: "var(--text-primary)",
+                    backgroundColor: "var(--bg-tertiary)",
+                    fontSize: "0.875rem",
+                    letterSpacing: "0.5px",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {category.label}
+                </MenuItem>,
+                ...category.activities.map((activity) => (
+                  <MenuItem key={activity.value} value={activity.value}>
+                    {activity.label}
+                  </MenuItem>
+                )),
+              ])}
 
-                  {timerState === "running" && (
-                    <OverlayTrigger placement="bottom" delay={{ show: 250, hide: 400 }} overlay={(props) => renderTimerTooltip("Pause", props)}>
-                      <Button variant="warning" onClick={pauseTimer} style={{ minWidth: '100px' }}>
-                        <PauseIcon style={{ marginRight: "5px" }} /> Pause
-                      </Button>
-                    </OverlayTrigger>
-                  )}
+              {customActivities.length > 0 && [
+                <MenuItem
+                  key="custom-header"
+                  disabled
+                  sx={{
+                    opacity: 1,
+                    fontWeight: 600,
+                    color: "var(--text-primary)",
+                    backgroundColor: "var(--bg-tertiary)",
+                  }}
+                >
+                  My Custom Activities
+                </MenuItem>,
+                ...customActivities.map((activity) => (
+                  <MenuItem key={activity._id} value={activity.activityName}>
+                    ⭐ {activity.activityName}
+                  </MenuItem>
+                )),
+              ]}
+            </Select>
+          </FormControl>
 
-                  {timerState !== "stopped" && (
-                    <OverlayTrigger placement="bottom" delay={{ show: 250, hide: 400 }} overlay={(props) => renderTimerTooltip("Stop", props)}>
-                      <Button variant="danger" onClick={stopTimer}>
-                        <StopIcon style={{ marginRight: "5px" }} /> Stop
-                      </Button>
-                    </OverlayTrigger>
-                  )}
+          <MuiButton
+            variant="outlined"
+            startIcon={<AddIcon />}
+            onClick={() => setShowCustomActivityModal(true)}
+            sx={{
+              mt: 2,
+              color: "var(--color-primary)",
+              borderColor: "var(--color-primary)",
+              borderWidth: "2px",
+              fontWeight: 600,
+              textTransform: "none",
+              borderRadius: "30px",
+              "&:hover": {
+                borderWidth: "2px",
+                backgroundColor: "var(--bg-secondary)",
+              },
+            }}
+          >
+            Add Custom Activity
+          </MuiButton>
 
-                  {(timerState === "stopped" && timerSeconds > 0) && (
-                    <OverlayTrigger placement="bottom" delay={{ show: 250, hide: 400 }} overlay={(props) => renderTimerTooltip("Reset", props)}>
-                      <Button variant="outline-secondary" onClick={resetTimer}>
-                        Reset
-                      </Button>
-                    </OverlayTrigger>
-                  )}
-                </div>
-                {timerSeconds > 0 && timerState === "stopped" && (
-                  <div className="timer-summary">Logged Duration: {Math.round(timerSeconds / 60)} minutes</div>
+          {customActivities.length > 0 && (
+            <Typography
+              variant="caption"
+              sx={{
+                color: "var(--text-muted)",
+                ml: 2,
+                mt: 2,
+                display: "inline-block",
+              }}
+            >
+              {customActivities.length} custom{" "}
+              {customActivities.length === 1 ? "activity" : "activities"}
+            </Typography>
+          )}
+        </Box>
+
+        {/* Description */}
+        <Box
+          sx={{
+            backgroundColor: "var(--bg-elevated)",
+            borderRadius: "var(--radius-md)",
+            border: "1px solid var(--border-light)",
+            p: 3,
+            mb: 3,
+          }}
+        >
+          <Typography
+            variant="h6"
+            sx={{
+              color: "var(--text-primary)",
+              fontWeight: 600,
+              mb: 2,
+            }}
+          >
+            Description
+          </Typography>
+          <TextField
+            multiline
+            rows={4}
+            value={state.description}
+            onChange={(e) =>
+              setState({ ...state, description: e.target.value })
+            }
+            placeholder="Add details about your activity..."
+            required
+            fullWidth
+            InputProps={{
+              sx: {
+                backgroundColor: "var(--bg-secondary)",
+                color: "var(--text-primary)",
+                borderRadius: "var(--radius-sm)",
+                border: "1px solid var(--border-medium)",
+                "& textarea::placeholder": {
+                  color: "var(--text-muted)",
+                  opacity: 1,
+                },
+                "& .MuiOutlinedInput-notchedOutline": {
+                  border: "none",
+                },
+                "&:hover": {
+                  borderColor: "var(--color-primary)",
+                },
+                "&.Mui-focused": {
+                  borderColor: "var(--color-primary)",
+                  borderWidth: "2px",
+                },
+              },
+            }}
+          />
+        </Box>
+
+        {/* Duration */}
+        <Box
+          sx={{
+            backgroundColor: "var(--bg-elevated)",
+            borderRadius: "var(--radius-md)",
+            border: "1px solid var(--border-light)",
+            p: 3,
+            mb: 3,
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 2,
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{
+                color: "var(--text-primary)",
+                fontWeight: 600,
+              }}
+            >
+              Duration (minutes)
+            </Typography>
+            <MuiButton
+              variant="contained"
+              startIcon={
+                timerMode === "manual" ? <TimerIcon /> : <AccessTimeIcon />
+              }
+              onClick={() => {
+                if (timerMode === "timer") stopTimer();
+                setTimerMode(timerMode === "manual" ? "timer" : "manual");
+              }}
+              sx={{
+                backgroundColor: "var(--color-primary)",
+                color: "#FFFFFF",
+                fontWeight: 600,
+                textTransform: "none",
+                borderRadius: "30px",
+                boxShadow: "var(--shadow-md)",
+                "&:hover": {
+                  backgroundColor: "var(--color-primary-hover)",
+                },
+              }}
+            >
+              {timerMode === "manual" ? "Live Timer" : "Manual Entry"}
+            </MuiButton>
+          </Box>
+
+          {timerMode === "manual" ? (
+            <TextField
+              type="number"
+              value={state.duration}
+              onChange={(e) => setState({ ...state, duration: e.target.value })}
+              placeholder="Duration in minutes"
+              required
+              fullWidth
+              InputProps={{
+                sx: {
+                  backgroundColor: "var(--bg-secondary)",
+                  color: "var(--text-primary)",
+                  borderRadius: "var(--radius-sm)",
+                  border: "1px solid var(--border-medium)",
+                  "& input": {
+                    fontSize: "1rem",
+                  },
+                  "& .MuiOutlinedInput-notchedOutline": {
+                    border: "none",
+                  },
+                  "&:hover": {
+                    borderColor: "var(--color-primary)",
+                  },
+                  "&.Mui-focused": {
+                    borderColor: "var(--color-primary)",
+                    borderWidth: "2px",
+                  },
+                },
+              }}
+            />
+          ) : (
+            <Box>
+              <Typography
+                variant="h2"
+                sx={{
+                  color:
+                    timerState === "running"
+                      ? "var(--color-primary)"
+                      : "var(--text-primary)",
+                  fontWeight: 700,
+                  textAlign: "center",
+                  my: 3,
+                  fontFamily: "monospace",
+                  transition: "color 0.3s ease",
+                }}
+              >
+                {displayTime}
+              </Typography>
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 2,
+                  justifyContent: "center",
+                  flexWrap: "wrap",
+                }}
+              >
+                {(timerState === "stopped" || timerState === "paused") && (
+                  <MuiButton
+                    variant="contained"
+                    startIcon={<PlayArrowIcon />}
+                    onClick={startTimer}
+                    sx={{
+                      backgroundColor: "var(--color-primary)",
+                      color: "#FFFFFF",
+                      fontWeight: 600,
+                      textTransform: "none",
+                      borderRadius: "30px",
+                      minWidth: 120,
+                      "&:hover": {
+                        backgroundColor: "var(--color-primary-hover)",
+                      },
+                    }}
+                  >
+                    {timerState === "stopped" ? "Start" : "Resume"}
+                  </MuiButton>
                 )}
-              </div>
-            )}
-          </Form.Group>
 
+                {timerState === "running" && (
+                  <MuiButton
+                    variant="contained"
+                    startIcon={<PauseIcon />}
+                    onClick={pauseTimer}
+                    sx={{
+                      backgroundColor: "var(--color-warning)",
+                      color: "var(--text-primary)",
+                      fontWeight: 600,
+                      textTransform: "none",
+                      borderRadius: "30px",
+                      minWidth: 120,
+                      "&:hover": {
+                        backgroundColor: "#c2850c",
+                      },
+                    }}
+                  >
+                    Pause
+                  </MuiButton>
+                )}
 
-          {/* Submit */}
-          <div className="form-actions">
-            <OverlayTrigger placement="top" delay={{ show: 250, hide: 400 }} overlay={renderSaveTooltip}>
-              <Button variant="primary" type="submit">
-                Save Activity
-              </Button>
-            </OverlayTrigger>
-          </div>
-          {message && <p className="success-message">{message}</p>}
+                {timerState !== "stopped" && (
+                  <MuiButton
+                    variant="contained"
+                    startIcon={<StopIcon />}
+                    onClick={stopTimer}
+                    sx={{
+                      backgroundColor: "var(--color-error)",
+                      color: "#FFFFFF",
+                      fontWeight: 600,
+                      textTransform: "none",
+                      borderRadius: "30px",
+                      minWidth: 120,
+                      "&:hover": {
+                        backgroundColor: "#b71c1c",
+                      },
+                    }}
+                  >
+                    Stop
+                  </MuiButton>
+                )}
 
-        </Form>
-      </div>
+                {timerState === "stopped" && timerSeconds > 0 && (
+                  <MuiButton
+                    variant="outlined"
+                    onClick={resetTimer}
+                    sx={{
+                      borderColor: "var(--border-medium)",
+                      color: "var(--text-primary)",
+                      fontWeight: 600,
+                      textTransform: "none",
+                      borderRadius: "30px",
+                      minWidth: 120,
+                      "&:hover": {
+                        backgroundColor: "var(--bg-secondary)",
+                        borderColor: "var(--border-dark)",
+                      },
+                    }}
+                  >
+                    Reset
+                  </MuiButton>
+                )}
+              </Box>
+              {timerSeconds > 0 && timerState === "stopped" && (
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "var(--text-muted)",
+                    textAlign: "center",
+                    mt: 2,
+                  }}
+                >
+                  Logged Duration: {Math.round(timerSeconds / 60)} minutes
+                </Typography>
+              )}
+            </Box>
+          )}
+        </Box>
+
+        {/* Submit Button */}
+        <MuiButton
+          type="submit"
+          variant="contained"
+          fullWidth
+          sx={{
+            py: 1.5,
+            borderRadius: "30px",
+            fontWeight: 700,
+            fontSize: "1rem",
+            textTransform: "none",
+            backgroundColor: "var(--color-primary)",
+            color: "#FFFFFF",
+            boxShadow: "var(--shadow-md)",
+            "&:hover": {
+              backgroundColor: "var(--color-primary-hover)",
+              boxShadow: "var(--shadow-lg)",
+              transform: "translateY(-1px)",
+            },
+          }}
+        >
+          Save Activity
+        </MuiButton>
+
+        {/* Success Message */}
+        {message && (
+          <Typography
+            sx={{
+              mt: 2,
+              p: 2,
+              backgroundColor: message.includes("✅")
+                ? "var(--color-success-bg)"
+                : "var(--color-error-bg)",
+              color: "var(--text-primary)",
+              borderRadius: "var(--radius-sm)",
+              textAlign: "center",
+              fontWeight: 600,
+            }}
+          >
+            {message}
+          </Typography>
+        )}
+      </Box>
 
       {/* Custom Activity Modal */}
       <CustomActivityModal
@@ -644,9 +1042,7 @@ const TrackExercise = ({ currentUser }) => {
         onActivityCreated={handleActivityCreated}
         currentUser={currentUser}
       />
-    </div>
-
-
+    </Box>
   );
 };
 

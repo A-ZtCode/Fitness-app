@@ -5,205 +5,303 @@ import {
   Box,
   Button,
   Stack,
-  TextField,
   Typography,
   CircularProgress,
+  Link as MuiLink,
 } from "@mui/material";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 
 const Login = ({ onLogin }) => {
-  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [unverified, setUnverified] = useState(false);
-  const [resendStatus, setResendStatus] = useState(""); // sending | sent | error
-  const [resendError, setResendError] = useState("");
-
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
   const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleResendVerification = async () => {
-    setResendStatus("sending");
-    setResendError("");
-    try {
-      const response = await axios.post(
-        "http://localhost:8080/api/auth/resend-verification",
-        { email: formData.email }
-      );
-
-      if (response.status === 200) {
-        setResendStatus("sent");
-      }
-    } catch (err) {
-      setResendStatus("error");
-      setResendError(
-        err.response?.data?.message ||
-          "Failed to send email, please try again later"
-      );
-    }
-  }
-
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    setUnverified(false);
     setLoading(true);
 
     try {
-      const loginResponse = await axios.post(
+      const response = await axios.post(
         "http://localhost:8080/api/auth/login",
-        {
-          email: formData.email,
-          password: formData.password,
-        }
+        { email, password }
       );
 
-      if (loginResponse.status === 200 && loginResponse.data.jwt) {
-        localStorage.setItem("jwt", loginResponse.data.jwt);
-
-        const { data } = await axios.get(
-          `http://localhost:8080/api/auth/user?email=${encodeURIComponent(
-            formData.email
-          )}`
-        );
-        localStorage.setItem("user", JSON.stringify(data));
-
-        onLogin(data.email);
-        navigate("/statistics");
+      if (response.status === 200) {
+        onLogin(email);
+        navigate("/trackExercise");
       }
     } catch (err) {
-      if (err.response && err.response.status === 403) {
-        setError("Your account has not been verified. Please click the link sent to your email.");
-        setUnverified(true);
-      } else if (err.response.data.message && err.response.status === 401) {
-        setError(err.response.data.message);
-      } else {
-        setError("Failed to login");
-      }
+      setError(
+        err.response?.data?.message ||
+          "Login failed. Please check your credentials and try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
+  const inputStyle = (isFocused) => ({
+    width: "100%",
+    padding: "16px 14px",
+    fontSize: "1rem",
+    fontFamily: "inherit",
+    color: "var(--text-primary)",
+    backgroundColor: "var(--bg-secondary)",
+    border: isFocused
+      ? "2px solid var(--color-primary)"
+      : "1px solid var(--border-medium)",
+    borderRadius: "var(--radius-sm)",
+    outline: "none",
+    transition: "all 0.3s ease",
+    "&:hover": {
+      borderColor: "var(--color-primary)",
+    },
+    "&:disabled": {
+      backgroundColor: "var(--bg-tertiary)",
+      opacity: 0.6,
+      cursor: "not-allowed",
+    },
+    "&:-webkit-autofill": {
+      WebkitBoxShadow: "0 0 0 1000px var(--bg-secondary) inset !important",
+      WebkitTextFillColor: "var(--text-primary) !important",
+      transition: "background-color 5000s ease-in-out 0s",
+    },
+    "&:-webkit-autofill:hover": {
+      WebkitBoxShadow: "0 0 0 1000px var(--bg-secondary) inset !important",
+    },
+    "&:-webkit-autofill:focus": {
+      WebkitBoxShadow: "0 0 0 1000px var(--bg-secondary) inset !important",
+    },
+  });
+
+  const labelStyle = (isFocused, hasValue) => ({
+    position: "absolute",
+    left: "14px",
+    top: isFocused || hasValue ? "-10px" : "16px",
+    fontSize: isFocused || hasValue ? "0.75rem" : "1rem",
+    fontWeight: isFocused ? 600 : 500,
+    color: isFocused ? "var(--color-primary)" : "var(--text-secondary)",
+    backgroundColor: "var(--bg-secondary)",
+    padding: "0 4px",
+    pointerEvents: "none",
+    transition: "all 0.2s ease",
+  });
+
   return (
     <Box
-      component="form"
-      onSubmit={handleLogin}
-      noValidate
       sx={{
-        mt: 1,
-        maxWidth: 420,
-        mx: "auto",
-        p: 4,
-        borderRadius: 4,
-        boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
-        backgroundColor: "white",
+        minHeight: "60vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        py: 4,
       }}
     >
-      <Typography
-        variant="h5"
-        align="center"
-        fontWeight={600}
-        mb={3}
-        color="text.primary"
+      <Box
+        sx={{
+          maxWidth: 450,
+          width: "100%",
+          mx: "auto",
+          p: 4,
+          borderRadius: "var(--radius-lg)",
+          boxShadow: "var(--shadow-lg)",
+          backgroundColor: "var(--bg-elevated)",
+          border: "1px solid var(--border-light)",
+        }}
       >
-        Login
-      </Typography>
-
-      {error && (
-        <Alert severity={unverified ? "warning" : "error"} sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      {unverified && (
-        <Box sx={{ mb: 2}}>
-          <Typography variant="body2">
-            Didn't receive the email? 
-            <Button 
-              variant="text" 
-              disabled={resendStatus === "sending"} 
-              onClick={() => handleResendVerification(formData.email)}
-            >
-              {resendStatus === "sending" ? <CircularProgress size={20} color="inherit"/> 
-              : "Resend email"}
-            </Button>
+        <Box sx={{ textAlign: "center", mb: 3 }}>
+          <Box
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 56,
+              height: 56,
+              borderRadius: "50%",
+              backgroundColor: "var(--color-primary)",
+              mb: 2,
+            }}
+          >
+            <LockOutlinedIcon sx={{ color: "#FFFFFF", fontSize: 28 }} />
+          </Box>
+          <Typography
+            variant="h4"
+            component="h1"
+            fontWeight={700}
+            color="var(--text-primary)"
+            gutterBottom
+          >
+            Login
           </Typography>
-          {resendStatus === "sent" && (
-            <Typography variant="body2" color="success.main" sx={{ mb: 2 }}>
-              Verification email sent! Please check your inbox.
-            </Typography>
-          )}
-          {resendStatus === "error" && (
-            <Typography variant="body2" color="error.main" sx={{ mb: 2 }}>
-              {resendError}
-            </Typography>
-          )}
         </Box>
-      )}
 
-      <Stack spacing={2.5}>
-        <TextField
-          label="Email"
-          name="email"
-          type="email"
-          variant="standard"
-          fullWidth
-          required
-          value={formData.email}
-          onChange={handleChange}
-        />
+        {error && (
+          <Alert
+            severity="error"
+            sx={{
+              mb: 3,
+              backgroundColor: "var(--color-error-bg)",
+              color: "var(--text-primary)",
+              border: "1px solid var(--color-error)",
+              "& .MuiAlert-icon": {
+                color: "var(--color-error)",
+              },
+            }}
+          >
+            {error}
+          </Alert>
+        )}
 
-        <TextField
-          label="Password"
-          name="password"
-          type="password"
-          variant="standard"
-          fullWidth
-          required
-          value={formData.password}
-          onChange={handleChange}
-        />
+        <Box component="form" onSubmit={handleSubmit} noValidate>
+          <Stack spacing={3}>
+            {/* Email Field */}
+            <Box sx={{ position: "relative" }}>
+              <Box
+                component="label"
+                htmlFor="email"
+                sx={labelStyle(emailFocused, email)}
+              >
+                Email Address *
+              </Box>
+              <Box
+                component="input"
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                autoFocus
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onFocus={() => setEmailFocused(true)}
+                onBlur={() => setEmailFocused(false)}
+                disabled={loading}
+                sx={inputStyle(emailFocused)}
+              />
+            </Box>
 
-        <Button
-          type="submit"
-          variant="contained"
-          disabled={loading}
-          sx={{
-            mt: 2,
-            backgroundColor: "var(--color-primary)",
-            "&:hover": {
-              backgroundColor: "var(--color-primary-600)",
-            },
-            py: 1.2,
-            fontWeight: "bold",
-            borderRadius: "30px",
-            transition: "background-color 0.3s ease",
-          }}
-        >
-          {loading ? <CircularProgress size={24} /> : "Login"}
-        </Button>
-      </Stack>
+            {/* Password Field */}
+            <Box sx={{ position: "relative" }}>
+              <Box
+                component="label"
+                htmlFor="password"
+                sx={labelStyle(passwordFocused, password)}
+              >
+                Password *
+              </Box>
+              <Box
+                component="input"
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => setPasswordFocused(false)}
+                disabled={loading}
+                sx={inputStyle(passwordFocused)}
+              />
+            </Box>
 
-      <Typography sx={{ mt: 2, textAlign: "center" }}>
-        Don't have an account?{" "}
-        <Button
-          component={RouterLink}
-          to="/signup"
-          variant="text"
-          sx={{
-            textTransform: "none",
-            color: "var(--color-primary)",
-            fontWeight: 600,
-          }}
-        >
-          Sign up
-        </Button>
-      </Typography>
+            <Box sx={{ textAlign: "right" }}>
+              <MuiLink
+                component={RouterLink}
+                to="/forgot-password"
+                sx={{
+                  color: "var(--color-primary)",
+                  textDecoration: "none",
+                  fontWeight: 600,
+                  fontSize: "0.875rem",
+                  "&:hover": {
+                    textDecoration: "underline",
+                  },
+                  "&:focus": {
+                    outline: "2px solid var(--color-primary)",
+                    outlineOffset: "2px",
+                    borderRadius: "4px",
+                  },
+                }}
+              >
+                Forgot password?
+              </MuiLink>
+            </Box>
+
+            <Button
+              type="submit"
+              variant="contained"
+              fullWidth
+              disabled={loading || !email || !password}
+              sx={{
+                mt: 2,
+                py: 1.5,
+                borderRadius: "30px",
+                fontWeight: 700,
+                fontSize: "1rem",
+                textTransform: "none",
+                backgroundColor: "var(--color-primary)",
+                color: "#FFFFFF",
+                boxShadow: "var(--shadow-md)",
+                transition: "all 0.3s ease",
+
+                "&.Mui-disabled": {
+                  backgroundColor: "var(--border-medium)",
+                  color: "var(--text-muted)",
+                  opacity: 0.6,
+                },
+
+                "&:hover": {
+                  backgroundColor: "var(--color-primary-hover)",
+                  boxShadow: "var(--shadow-lg)",
+                  transform: "translateY(-1px)",
+                },
+
+                "&:active": {
+                  transform: "translateY(0)",
+                },
+              }}
+            >
+              {loading ? (
+                <CircularProgress size={24} sx={{ color: "#FFFFFF" }} />
+              ) : (
+                "Login"
+              )}
+            </Button>
+          </Stack>
+        </Box>
+
+        <Box sx={{ mt: 3, textAlign: "center" }}>
+          <Typography variant="body2" color="var(--text-secondary)">
+            Don't have an account?{" "}
+            <MuiLink
+              component={RouterLink}
+              to="/signup"
+              sx={{
+                color: "var(--color-primary)",
+                textDecoration: "none",
+                fontWeight: 700,
+                "&:hover": {
+                  textDecoration: "underline",
+                },
+                "&:focus": {
+                  outline: "2px solid var(--color-primary)",
+                  outlineOffset: "2px",
+                  borderRadius: "4px",
+                },
+              }}
+            >
+              Sign up
+            </MuiLink>
+          </Typography>
+        </Box>
+      </Box>
     </Box>
   );
 };
