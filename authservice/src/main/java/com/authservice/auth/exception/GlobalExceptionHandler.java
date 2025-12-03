@@ -32,4 +32,29 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDTO> handleInvalidTokenException(InvalidTokenException ex) {
         return ResponseEntity.badRequest().body(new ErrorResponseDTO(ex.getMessage()));
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponseDTO> handleIllegalArgumentException(IllegalArgumentException ex) {
+        return ResponseEntity.badRequest().body(new ErrorResponseDTO(ex.getMessage()));
+    }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ErrorResponseDTO> handleUserNotFoundException(UserNotFoundException ex) {
+        return ResponseEntity.status(404).body(new ErrorResponseDTO(ex.getMessage()));
+    }
+
+    @ExceptionHandler(EmailAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponseDTO> handleEmailAlreadyExistsException(EmailAlreadyExistsException ex) {
+        return ResponseEntity.badRequest().body(new ErrorResponseDTO(ex.getMessage()));
+    }
+
+    @ExceptionHandler(EmailVerificationException.class)
+    public ResponseEntity<ErrorResponseDTO> handleEmailVerificationException(EmailVerificationException ex) {
+        return ResponseEntity.status(403).body(new ErrorResponseDTO(ex.getMessage()));
+    }
+
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<ErrorResponseDTO> handleTooManyRequestsException(TooManyRequestsException ex) {
+        return ResponseEntity.status(429).body(new ErrorResponseDTO(ex.getMessage()));
+    }
 }
