@@ -8,6 +8,7 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
 
 import com.authservice.auth.dto.AuthResponseDTO;
 import com.authservice.auth.dto.LoginRequestDTO;
@@ -23,6 +24,7 @@ import com.authservice.auth.model.User;
 import com.authservice.auth.repository.UserRepository;
 import com.authservice.auth.util.ValidationUtils;
 
+@Service
 public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -117,7 +119,7 @@ public class AuthService {
         if (existingUser != null && passwordEncoder.matches(request.getPassword(), existingUser.getPassword())) {
             if (existingUser.isVerified()) {
                 String token = jwtService.createUserToken(email);
-                return new AuthResponseDTO("User authenticated", token);
+                return new AuthResponseDTO(token, "User authenticated");
             } else {
                 throw new EmailVerificationException("Email not yet verified");
             }

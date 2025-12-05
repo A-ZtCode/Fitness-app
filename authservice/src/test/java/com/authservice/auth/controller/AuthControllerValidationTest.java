@@ -4,22 +4,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.authservice.auth.dto.AuthResponseDTO;
 import com.authservice.auth.model.User;
-import com.authservice.auth.repository.UserRepository;
-import com.authservice.auth.service.EmailService;
-import com.authservice.auth.service.JwtService;
+import com.authservice.auth.service.AuthService;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.hamcrest.Matchers.containsString;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 
@@ -31,19 +26,12 @@ public class AuthControllerValidationTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private UserRepository userRepository;
-
-    @MockBean
-    private PasswordEncoder passwordEncoder;
-
-    @MockBean
-    private JwtService jwtService;
-
-    @MockBean
-    private EmailService emailService;
+    private AuthService authService;
 
     private final String signupUrl = "/api/auth/signup";
     private final String loginUrl = "/api/auth/login";
+    private final String register_success_msg = "User registered successfully! Please check your email to verify your account before logging in.";
+    private final String login_success_msg = "User authenticated";
 
     private String createSignUpRequest(String email, String password, String firstName, String lastName) {
         return "{ \"email\": \"" + email 
@@ -82,16 +70,13 @@ public class AuthControllerValidationTest {
     public void signUp_validRequest_returnsOk() throws Exception {
         String body = createSignUpRequest("email@test.com", "ValidPassword#_+123", "Jane", "Doe");
 
-        when(userRepository.existsByEmail(anyString())).thenReturn(false);
-        when(passwordEncoder.encode(anyString())).thenReturn("encoded");
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(authService.registerUser(any())).thenReturn(new AuthResponseDTO(register_success_msg));
 
         mockMvc.perform(post(signupUrl)
             .contentType(APPLICATION_JSON)
             .content(body))
-            .andExpect(status().isOk());
-        
-        verify(userRepository, times(2)).save(any(User.class));
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.message").value(register_success_msg));
     }
 
     @Test
@@ -115,16 +100,14 @@ public class AuthControllerValidationTest {
         user.setPassword("encoded");
         user.setVerified(true);
 
-        when(userRepository.findByEmail("email@test.com")).thenReturn(user);
-        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
-        when(jwtService.createUserToken(anyString())).thenReturn("jwt");
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(authService.authenticateUser(any()))
+            .thenReturn(new AuthResponseDTO("jwt", login_success_msg));
 
         mockMvc.perform(post(loginUrl)
             .contentType(APPLICATION_JSON)
             .content(body))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.jwt").value("jwt"))
-            .andExpect(jsonPath("$.message").value("User authenticated"));
+            .andExpect(jsonPath("$.message").value(login_success_msg));
     }
 }
