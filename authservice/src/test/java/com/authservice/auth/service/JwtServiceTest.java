@@ -8,7 +8,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class JwtServiceTests {
+public class JwtServiceTest {
 
     private JwtService jwtService;
 

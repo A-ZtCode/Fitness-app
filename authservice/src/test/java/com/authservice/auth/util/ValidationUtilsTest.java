@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 
 import com.authservice.auth.exception.ValidationException;
 
-public class ValidationUtilsTests {
+public class ValidationUtilsTest {
 
     @Test
     public void validateEmailAddressConstraints_validEmails_doNotThrow() {
