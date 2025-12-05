@@ -25,7 +25,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 
 @WebMvcTest(AuthController.class)
-public class AuthControllerValidationTests {
+public class AuthControllerValidationTest {
     
     @Autowired
     private MockMvc mockMvc;

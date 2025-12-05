@@ -21,7 +21,7 @@ import com.authservice.auth.model.User;
 
 import io.jsonwebtoken.Claims;
 
-public class EmailServiceTests {
+public class EmailServiceTest {
     private JavaMailSender mailSender;
     private JwtService jwtService;
     private EmailService emailService;
