@@ -4,23 +4,30 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableWebSecurity
-public class SecurityConfig extends WebSecurityConfigurerAdapter {
+public class SecurityConfig {
 
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .cors().and() // Enable CORS (configure this based on your requirements)
-                .csrf().disable() // Disable CSRF (enable and configure this in production)
-                .authorizeRequests()
-                .antMatchers("/api/auth/**").permitAll() // Public endpoints
-                .anyRequest().authenticated() // All other requests need authentication
-                .and()
-                .httpBasic();
+            .cors().and()
+            .csrf().disable()
+            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            .and()
+            .authorizeRequests(auth -> auth
+                .antMatchers(
+                    "/api/auth/**",
+                    "/actuator/prometheus"
+                ).permitAll() // Endpoints are public for now
+                .anyRequest().authenticated()
+            )
+            .httpBasic().disable(); // Disabled as will use JWT in future
+        return http.build();
     }
 
     @Bean

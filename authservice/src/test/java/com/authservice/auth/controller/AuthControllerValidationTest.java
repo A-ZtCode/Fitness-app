@@ -4,8 +4,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.authservice.auth.config.SecurityConfig;
 import com.authservice.auth.dto.AuthResponseDTO;
 import com.authservice.auth.model.User;
 import com.authservice.auth.service.AuthService;
@@ -21,6 +23,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static com.authservice.auth.TestUtils.*;
 
 @WebMvcTest(AuthController.class)
+@Import(SecurityConfig.class)
 public class AuthControllerValidationTest {
     
     @Autowired
