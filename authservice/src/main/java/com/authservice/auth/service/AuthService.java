@@ -19,6 +19,7 @@ import com.authservice.auth.dto.UserResponseDTO;
 import com.authservice.auth.exception.EmailAlreadyExistsException;
 import com.authservice.auth.exception.EmailSendException;
 import com.authservice.auth.exception.EmailVerificationException;
+import com.authservice.auth.exception.InvalidCredentialsException;
 import com.authservice.auth.exception.TooManyRequestsException;
 import com.authservice.auth.exception.UserNotFoundException;
 import com.authservice.auth.model.User;
@@ -27,6 +28,9 @@ import com.authservice.auth.util.ValidationUtils;
 
 @Service
 public class AuthService {
+
+    public static final String EMAIL_REQUIRED = "Email is required";
+    public static final String USER_ID_REQUIRED = "User ID is required";
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
@@ -50,7 +54,7 @@ public class AuthService {
 
     public UserResponseDTO getUserByEmail(String email) {
         if (email == null || email.isEmpty()) {
-            throw new IllegalArgumentException("Email is required");
+            throw new IllegalArgumentException(EMAIL_REQUIRED);
         }
         User user = userRepository.findByEmail(email);
         if (user == null) {
@@ -61,7 +65,7 @@ public class AuthService {
 
     public UserResponseDTO getUserById(String id) {
         if (id == null || id.isEmpty()) {
-            throw new IllegalArgumentException("User ID is required");
+            throw new IllegalArgumentException(USER_ID_REQUIRED);
         }
         User user = userRepository.findById(id).orElse(null);
         if (user == null) {
@@ -70,9 +74,9 @@ public class AuthService {
         return new UserResponseDTO(user.getId(), user.getEmail(), user.getFirstName(), user.getLastName());
     }
 
-    public AuthResponseDTO updateUserDetails(String id, UpdateUserRequestDTO request) {
+    public void updateUserDetails(String id, UpdateUserRequestDTO request) {
         if (id == null || id.isEmpty()) {
-            throw new IllegalArgumentException("User ID is required");
+            throw new IllegalArgumentException(USER_ID_REQUIRED);
         }
         User user = userRepository.findById(id).orElse(null);
         if (user == null) {
@@ -85,7 +89,6 @@ public class AuthService {
             user.setLastName(request.getLastName());
         }
         userRepository.save(user);
-        return new AuthResponseDTO("User details updated successfully");
     }
 
     public AuthResponseDTO registerUser(SignUpRequestDTO request) {
@@ -125,7 +128,7 @@ public class AuthService {
                 throw new EmailVerificationException();
             }
         } else {
-            throw new IllegalArgumentException("Email or password is incorrect - please try again");
+            throw new InvalidCredentialsException();
         }
     }
 
@@ -145,7 +148,7 @@ public class AuthService {
     public void resendVerificationEmail(Map<String, String> request) {
         String rawEmail = request.get("email");
         if (rawEmail == null || rawEmail.isEmpty()) {
-            throw new IllegalArgumentException("Email must be provided");
+            throw new IllegalArgumentException(EMAIL_REQUIRED);
         }
 
         String email = ValidationUtils.normaliseAndValidateEmail(rawEmail);
@@ -174,7 +177,7 @@ public class AuthService {
     public void sendPasswordResetEmail(Map<String, String> request) {
         String rawEmail = request.get("email");
         if (rawEmail == null || rawEmail.isEmpty()) {
-            throw new IllegalArgumentException("Email must be provided");
+            throw new IllegalArgumentException(EMAIL_REQUIRED);
         }
 
         String email = ValidationUtils.normaliseAndValidateEmail(rawEmail);

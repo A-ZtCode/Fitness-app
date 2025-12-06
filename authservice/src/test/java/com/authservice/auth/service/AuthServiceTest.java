@@ -30,6 +30,7 @@ import com.authservice.auth.dto.SignUpRequestDTO;
 import com.authservice.auth.dto.UpdateUserRequestDTO;
 import com.authservice.auth.dto.UserResponseDTO;
 import com.authservice.auth.exception.EmailAlreadyExistsException;
+import com.authservice.auth.exception.InvalidCredentialsException;
 import com.authservice.auth.exception.InvalidTokenException;
 import com.authservice.auth.exception.TooManyRequestsException;
 import com.authservice.auth.exception.UserNotFoundException;
@@ -103,13 +104,13 @@ public class AuthServiceTest {
     /* TESTS FOR LOGIN */
 
     @Test
-    public void authenticateUser_whenEmailDoesNotExist_throwIllegalArgumentException() {
+    public void authenticateUser_whenEmailDoesNotExist_throwInvalidCredentialsException() {
         LoginRequestDTO request = createLoginRequestDto(EMAIL, PASSWORD);
 
         when(userRepository.findByEmail(EMAIL))
             .thenReturn(null);
 
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(InvalidCredentialsException.class, () -> {
             authService.authenticateUser(request);
         });
     }
@@ -133,7 +134,7 @@ public class AuthServiceTest {
     }
 
     @Test
-    public void authenticateUser_whenEmailCorrectPasswordIncorrect_throwIllegalArgumentException() {
+    public void authenticateUser_whenEmailCorrectPasswordIncorrect_throwInvalidCredentialsException() {
         LoginRequestDTO request = createLoginRequestDto(EMAIL, WRONG_PASSWORD);
         User existingUser = createUser(EMAIL, ENCODED_PASSWORD, FIRST_NAME, LAST_NAME);
         existingUser.setVerified(true);
@@ -143,7 +144,7 @@ public class AuthServiceTest {
         when(passwordEncoder.matches(WRONG_PASSWORD, ENCODED_PASSWORD))
             .thenReturn(false);
 
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(InvalidCredentialsException.class, () -> {
             authService.authenticateUser(request);
         });
     }
@@ -239,10 +240,9 @@ public class AuthServiceTest {
         when(userRepository.findById(USER_ID))
             .thenReturn(Optional.of(user));
 
-        AuthResponseDTO response = authService.updateUserDetails(USER_ID, updateRequest);
+        authService.updateUserDetails(USER_ID, updateRequest);
         verify(userRepository).findById(USER_ID);
 
-        assertEquals("User details updated successfully", response.getMessage());
         verify(userRepository).save(user);
         assertEquals("NewFirstName", user.getFirstName());
         assertEquals("NewLastName", user.getLastName());

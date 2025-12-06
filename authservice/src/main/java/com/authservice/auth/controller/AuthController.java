@@ -38,8 +38,8 @@ public class AuthController {
 
     @PatchMapping("/user/{id}")
     public ResponseEntity<?> updateUserDetails(@PathVariable("id") String id, @RequestBody UpdateUserRequestDTO request) {
-        AuthResponseDTO response = authService.updateUserDetails(id, request);
-        return ResponseEntity.ok(response);
+        authService.updateUserDetails(id, request);
+        return ResponseEntity.ok("User details updated successfully");
     }
 
     @PostMapping("/signup")
