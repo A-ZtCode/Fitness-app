@@ -9,6 +9,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import static com.authservice.auth.TestUtils.*;
+
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Optional;
@@ -35,17 +37,6 @@ import com.authservice.auth.model.User;
 import com.authservice.auth.repository.UserRepository;
 
 public class AuthServiceTest {
-    
-    private static final String PASSWORD = "testPassword";
-    private static final String WRONG_PASSWORD = "wrongPassword";
-    private static final String ENCODED_PASSWORD = "encodedPassword";
-    private static final String EMAIL = "testemail@test.com";
-    private static final String USER_ID = "testId";
-    private static final String FIRST_NAME = "Jane";
-    private static final String LAST_NAME = "Doe";
-    private static final String USER_REGISTERED_MSG = "User registered successfully! Please check your email to verify your account before logging in.";
-    private static final String USER_AUTHENTICATED_MSG = "User authenticated";
-    private static final String JWT = "jwt-token-for-use-in-tests-123456789";
 
     @Mock
     private UserRepository userRepository;
@@ -65,41 +56,14 @@ public class AuthServiceTest {
     @BeforeEach
     public void setUp() {
         MockitoAnnotations.openMocks(this);
-        when(jwtService.createUserToken(any(String.class))).thenReturn(JWT);
+        when(jwtService.createUserToken(any(String.class))).thenReturn(TOKEN);
     }
-
-    private SignUpRequestDTO createSignUpRequest(String email, String password) {
-        SignUpRequestDTO request = new SignUpRequestDTO();
-        request.setEmail(email);
-        request.setPassword(password);
-        request.setFirstName(FIRST_NAME);
-        request.setLastName(LAST_NAME);
-        return request;
-    }
-
-    private LoginRequestDTO createLoginRequest(String email, String password) {
-        LoginRequestDTO request = new LoginRequestDTO();
-        request.setEmail(email);
-        request.setPassword(password);
-        return request;
-    }
-
-    private User createUser(String email, String password, String firstName, String lastName) {
-        User user = new User();
-        user.setId(USER_ID);
-        user.setEmail(email);
-        user.setPassword(password);
-        user.setFirstName(firstName);
-        user.setLastName(lastName);
-        return user;
-    }
-
 
     /* TESTS FOR SIGN UP */
 
     @Test
     public void registerUser_whenEmailDoesNotExist_registersUser() {
-        SignUpRequestDTO request = createSignUpRequest(EMAIL, PASSWORD);
+        SignUpRequestDTO request = createSignUpRequestDto(EMAIL, PASSWORD);
 
         when(userRepository.existsByEmail(EMAIL))
             .thenReturn(false);
@@ -123,7 +87,7 @@ public class AuthServiceTest {
 
     @Test
     public void registerUser_whenEmailExists_throwsEmailAlreadyExistsException() {
-        SignUpRequestDTO request = createSignUpRequest(EMAIL, PASSWORD);
+        SignUpRequestDTO request = createSignUpRequestDto(EMAIL, PASSWORD);
 
         when(userRepository.existsByEmail(EMAIL))
             .thenReturn(true);
@@ -140,7 +104,7 @@ public class AuthServiceTest {
 
     @Test
     public void authenticateUser_whenEmailDoesNotExist_throwIllegalArgumentException() {
-        LoginRequestDTO request = createLoginRequest(EMAIL, PASSWORD);
+        LoginRequestDTO request = createLoginRequestDto(EMAIL, PASSWORD);
 
         when(userRepository.findByEmail(EMAIL))
             .thenReturn(null);
@@ -152,7 +116,7 @@ public class AuthServiceTest {
 
     @Test
     public void authenticateUser_whenEmailAndPasswordCorrect_authenticatesUser() {
-        LoginRequestDTO request = createLoginRequest(EMAIL, PASSWORD);
+        LoginRequestDTO request = createLoginRequestDto(EMAIL, PASSWORD);
         User existingUser = createUser(EMAIL, ENCODED_PASSWORD, FIRST_NAME, LAST_NAME);
         existingUser.setVerified(true);
 
@@ -165,12 +129,12 @@ public class AuthServiceTest {
         verify(userRepository).findByEmail(EMAIL);
 
         assertEquals(USER_AUTHENTICATED_MSG, response.getMessage());
-        assertEquals(JWT, response.getJwt());
+        assertEquals(TOKEN, response.getJwt());
     }
 
     @Test
     public void authenticateUser_whenEmailCorrectPasswordIncorrect_throwIllegalArgumentException() {
-        LoginRequestDTO request = createLoginRequest(EMAIL, WRONG_PASSWORD);
+        LoginRequestDTO request = createLoginRequestDto(EMAIL, WRONG_PASSWORD);
         User existingUser = createUser(EMAIL, ENCODED_PASSWORD, FIRST_NAME, LAST_NAME);
         existingUser.setVerified(true);
 
@@ -304,7 +268,6 @@ public class AuthServiceTest {
 
     @Test
     public void verifyEmail_whenValidToken_verifiesUser() {
-        final String TOKEN = "valid-verification-token";
         when(emailService.extractUserIdFromToken(TOKEN)).thenReturn(USER_ID);
 
         User user = createUser(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
@@ -387,7 +350,6 @@ public class AuthServiceTest {
 
     @Test
     public void resetPassword_whenValidRequest_resetsPassword() {
-        final String TOKEN = "valid-token";
         when(emailService.extractUserIdFromToken(TOKEN)).thenReturn(USER_ID);
 
         User user = createUser(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
@@ -413,7 +375,6 @@ public class AuthServiceTest {
 
     @Test
     public void resetPassword_whenUserDoesNotExist_throwsUserNotFoundException() {
-        final String TOKEN = "valid-token";
         when(emailService.extractUserIdFromToken(TOKEN)).thenReturn(USER_ID);
 
         when(userRepository.findById(USER_ID)).thenReturn(Optional.empty());

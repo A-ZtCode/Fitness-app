@@ -15,9 +15,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
-
+import static com.authservice.auth.TestUtils.*;
 
 @WebMvcTest(AuthController.class)
 public class AuthControllerValidationTest {
@@ -30,20 +31,6 @@ public class AuthControllerValidationTest {
 
     private final String signupUrl = "/api/auth/signup";
     private final String loginUrl = "/api/auth/login";
-    private final String register_success_msg = "User registered successfully! Please check your email to verify your account before logging in.";
-    private final String login_success_msg = "User authenticated";
-
-    private String createSignUpRequest(String email, String password, String firstName, String lastName) {
-        return "{ \"email\": \"" + email 
-            + "\", \"password\": \"" + password 
-            + "\", \"firstName\": \"" + firstName 
-            + "\", \"lastName\": \"" + lastName + "\" }";
-    }
-
-    private String createLoginRequest(String email, String password) {
-        return "{ \"email\": \"" + email 
-            + "\", \"password\": \"" + password + "\" }";
-    }
 
     @Test
     public void signUp_invalidRequest_returnsBadRequest() throws Exception {
@@ -52,7 +39,7 @@ public class AuthControllerValidationTest {
             longName[i] = 'a';
         }
         String name = new String(longName);
-        String body = createSignUpRequest("invalid-email", "invalid", name, name);
+        String body = createSignUpRequestJson("invalid-email", "invalid", name, name);
 
         mockMvc.perform(post(signupUrl)
             .contentType(APPLICATION_JSON)
@@ -64,24 +51,26 @@ public class AuthControllerValidationTest {
             .andExpect(jsonPath("$.message", containsString("Password must be between")))
             .andExpect(jsonPath("$.message", containsString("First name")))
             .andExpect(jsonPath("$.message", containsString("Last name")));
+
+        verifyNoInteractions(authService);
     }
 
     @Test
     public void signUp_validRequest_returnsOk() throws Exception {
-        String body = createSignUpRequest("email@test.com", "ValidPassword#_+123", "Jane", "Doe");
+        String body = createSignUpRequestJson(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
 
-        when(authService.registerUser(any())).thenReturn(new AuthResponseDTO(register_success_msg));
+        when(authService.registerUser(any())).thenReturn(new AuthResponseDTO(USER_REGISTERED_MSG));
 
         mockMvc.perform(post(signupUrl)
             .contentType(APPLICATION_JSON)
             .content(body))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.message").value(register_success_msg));
+            .andExpect(jsonPath("$.message").value(USER_REGISTERED_MSG));
     }
 
     @Test
     public void login_invalidRequest_returnsBadRequest() throws Exception {
-        String body = createLoginRequest("invalid-email", "invalid");
+        String body = createLoginRequestJson("invalid-email", "invalid");
 
         mockMvc.perform(post(loginUrl)
             .contentType(APPLICATION_JSON)
@@ -90,24 +79,26 @@ public class AuthControllerValidationTest {
             .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
             .andExpect(jsonPath("$.message", containsString("Invalid email")))
             .andExpect(jsonPath("$.message", containsString("Password must be between")));
+
+        verifyNoInteractions(authService);
     }
 
     @Test
     public void login_validRequest_returnsOk() throws Exception {
-        String body = createLoginRequest("email@test.com", "ValidPassword#_+123");
+        String body = createLoginRequestJson(EMAIL, PASSWORD);
         User user = new User();
         user.setEmail("email@test.com");
         user.setPassword("encoded");
         user.setVerified(true);
 
         when(authService.authenticateUser(any()))
-            .thenReturn(new AuthResponseDTO("jwt", login_success_msg));
+            .thenReturn(new AuthResponseDTO("jwt", USER_AUTHENTICATED_MSG));
 
         mockMvc.perform(post(loginUrl)
             .contentType(APPLICATION_JSON)
             .content(body))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.jwt").value("jwt"))
-            .andExpect(jsonPath("$.message").value(login_success_msg));
+            .andExpect(jsonPath("$.message").value(USER_AUTHENTICATED_MSG));
     }
 }
