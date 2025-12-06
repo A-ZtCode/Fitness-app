@@ -22,14 +22,13 @@ const ThemeSelector = () => {
         gutterBottom
         sx={{ color: "var(--text-primary)" }}
       >
-        Color Theme
+        Colour Theme
       </Typography>
       <Typography
         variant="body2"
         sx={{ color: "var(--text-secondary)", mb: 3 }}
       >
-        Choose a color theme that suits your preference. All themes are designed
-        with accessibility in mind.
+        Choose a colour theme that suits your preference.
       </Typography>
 
       <Box
