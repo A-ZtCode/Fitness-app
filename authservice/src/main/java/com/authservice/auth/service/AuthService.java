@@ -17,6 +17,7 @@ import com.authservice.auth.dto.SignUpRequestDTO;
 import com.authservice.auth.dto.UpdateUserRequestDTO;
 import com.authservice.auth.dto.UserResponseDTO;
 import com.authservice.auth.exception.EmailAlreadyExistsException;
+import com.authservice.auth.exception.EmailSendException;
 import com.authservice.auth.exception.EmailVerificationException;
 import com.authservice.auth.exception.TooManyRequestsException;
 import com.authservice.auth.exception.UserNotFoundException;
@@ -106,7 +107,7 @@ public class AuthService {
             user.setVerificationEmailSentAt(now());
             userRepository.save(user);
         } catch (Exception e) {
-            throw new EmailVerificationException("Failed to send verification email");
+            throw new EmailSendException();
         }
         
         return new AuthResponseDTO("User registered successfully! Please check your email to verify your account before logging in.");
@@ -121,7 +122,7 @@ public class AuthService {
                 String token = jwtService.createUserToken(email);
                 return new AuthResponseDTO(token, "User authenticated");
             } else {
-                throw new EmailVerificationException("Email not yet verified");
+                throw new EmailVerificationException();
             }
         } else {
             throw new IllegalArgumentException("Email or password is incorrect - please try again");
@@ -166,7 +167,7 @@ public class AuthService {
             user.setVerificationEmailSentAt(now());
             userRepository.save(user);
         } catch (Exception e) {
-            throw new EmailVerificationException("Failed to resend verification email");
+            throw new EmailSendException();
         }
     }
 

@@ -30,7 +30,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidTokenException.class)
     public ResponseEntity<ErrorResponseDTO> handleInvalidTokenException(InvalidTokenException ex) {
-        return ResponseEntity.badRequest().body(new ErrorResponseDTO(ex.getMessage()));
+        return ResponseEntity.status(401).body(new ErrorResponseDTO(ex.getMessage()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -45,7 +45,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(EmailAlreadyExistsException.class)
     public ResponseEntity<ErrorResponseDTO> handleEmailAlreadyExistsException(EmailAlreadyExistsException ex) {
-        return ResponseEntity.badRequest().body(new ErrorResponseDTO(ex.getMessage()));
+        return ResponseEntity.status(409).body(new ErrorResponseDTO(ex.getMessage()));
+    }
+
+    @ExceptionHandler(EmailSendException.class)
+    public ResponseEntity<ErrorResponseDTO> handleEmailSendException(EmailSendException ex) {
+        return ResponseEntity.status(500).body(new ErrorResponseDTO(ex.getMessage()));
     }
 
     @ExceptionHandler(EmailVerificationException.class)
