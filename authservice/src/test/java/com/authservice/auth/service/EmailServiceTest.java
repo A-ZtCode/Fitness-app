@@ -8,6 +8,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import static com.authservice.auth.TestUtils.*;
+
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 
@@ -25,15 +27,6 @@ public class EmailServiceTest {
     private JavaMailSender mailSender;
     private JwtService jwtService;
     private EmailService emailService;
-    private final String TOKEN = "test-token";
-
-    private User createUser() {
-        User user = new User();
-        user.setId("testID");
-        user.setEmail("user@test.com");
-        user.setFirstName("Jane");
-        return user;
-    }
 
     @BeforeEach
     public void setUp() {
@@ -44,7 +37,7 @@ public class EmailServiceTest {
 
     @Test
     public void sendVerificationEmail_sendsEmail() {
-        User user = createUser();
+        User user = createUser(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
 
         when(jwtService.createEmailVerificationToken(user.getId())).thenReturn(TOKEN);
 
@@ -59,7 +52,7 @@ public class EmailServiceTest {
 
     @Test
     public void sendVerificationEmail_sendsEmailWithCorrectContent() throws Exception {
-        User user = createUser();
+        User user = createUser(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
 
         when(jwtService.createEmailVerificationToken(user.getId())).thenReturn(TOKEN);
 
@@ -82,7 +75,7 @@ public class EmailServiceTest {
 
     @Test
     public void sendVerificationEmail_mailError_throwsRuntimeException() {
-        User user = createUser();
+        User user = createUser(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
 
         when(jwtService.createEmailVerificationToken(user.getId())).thenReturn(TOKEN);
 
@@ -95,15 +88,14 @@ public class EmailServiceTest {
 
     @Test
     public void extractUserIdFromVerificationToken_validToken_returnsCorrectUserId() {
-        String userId = "testID";
         Claims jwt = mock(Claims.class);
 
         when(jwtService.parseToken(TOKEN)).thenReturn(jwt);
-        when(jwt.getSubject()).thenReturn(userId);
+        when(jwt.getSubject()).thenReturn(USER_ID);
 
         String extractedUserId = emailService.extractUserIdFromToken(TOKEN);
 
-        assertEquals(userId, extractedUserId);
+        assertEquals(USER_ID, extractedUserId);
     }
 
     @Test

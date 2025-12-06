@@ -13,6 +13,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import static com.authservice.auth.TestUtils.*;
+
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 
@@ -62,10 +64,6 @@ public class SignupLoginIntegrationTest {
     @MockBean
     private JavaMailSender mailSender;
 
-    private final String EMAIL = "user@test.com";
-    private final String FIRST_NAME = "Jane";
-    private final String LAST_NAME = "Doe";
-    private final String PASSWORD = "ValidPassword1!";
     private final String VERIFY_TOKEN = "email-token";
     private final String LOGIN_TOKEN = "login-token";
 
@@ -83,10 +81,7 @@ public class SignupLoginIntegrationTest {
         when(jwtService.createUserToken(anyString())).thenReturn(LOGIN_TOKEN);
 
         // User signs up
-        String signupRequest = "{ \"email\": \"" + EMAIL
-            + "\", \"password\": \"" + PASSWORD
-            + "\", \"firstName\": \"" + FIRST_NAME
-            + "\", \"lastName\": \"" + LAST_NAME + "\" }";
+        String signupRequest = createSignUpRequestJson(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
 
         mockMvc.perform(post("/api/auth/signup")
             .contentType(MediaType.APPLICATION_JSON)
@@ -124,8 +119,7 @@ public class SignupLoginIntegrationTest {
         assertTrue(verifiedUser.isVerified());
 
         // User can now log in
-        String loginRequest = "{ \"email\": \"" + EMAIL
-            + "\", \"password\": \"" + PASSWORD + "\" }";
+        String loginRequest = createLoginRequestJson(EMAIL, PASSWORD);
         mockMvc.perform(post("/api/auth/login")
             .contentType(MediaType.APPLICATION_JSON)
             .content(loginRequest))
@@ -140,17 +134,13 @@ public class SignupLoginIntegrationTest {
         when(jwtService.createUserToken(anyString())).thenReturn(LOGIN_TOKEN);
 
         // Create unverified user
-        User user = new User();
-        user.setEmail(EMAIL);
-        user.setFirstName(FIRST_NAME);
-        user.setLastName(LAST_NAME);
+        User user = createUser(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
         user.setPassword(passwordEncoder.encode(PASSWORD));
         user.setVerified(false);
         userRepository.save(user);
 
         // Attempt login - should fail due to unverified email
-        String loginRequest = "{ \"email\": \"" + EMAIL
-            + "\", \"password\": \"" + PASSWORD + "\" }";
+        String loginRequest = createLoginRequestJson(EMAIL, PASSWORD);
         mockMvc.perform(post("/api/auth/login")
             .contentType(MediaType.APPLICATION_JSON)
             .content(loginRequest))
@@ -158,7 +148,7 @@ public class SignupLoginIntegrationTest {
             .andExpect(jsonPath("$.message").value("Email not verified"));
 
         // Resend verification email
-        String resendRequest = "{ \"email\": \"" + EMAIL + "\" }";
+        String resendRequest = createEmailRequestJson(EMAIL);
         mockMvc.perform(post("/api/auth/resend-verification")
             .contentType(MediaType.APPLICATION_JSON)
             .content(resendRequest))

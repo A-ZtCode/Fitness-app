@@ -10,6 +10,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
+import static com.authservice.auth.TestUtils.*;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -22,6 +24,8 @@ import com.authservice.auth.dto.LoginRequestDTO;
 import com.authservice.auth.dto.SignUpRequestDTO;
 import com.authservice.auth.dto.UserResponseDTO;
 import com.authservice.auth.exception.EmailAlreadyExistsException;
+import com.authservice.auth.exception.EmailSendException;
+import com.authservice.auth.exception.EmailVerificationException;
 import com.authservice.auth.exception.InvalidTokenException;
 import com.authservice.auth.exception.TooManyRequestsException;
 import com.authservice.auth.exception.UserNotFoundException;
@@ -30,42 +34,11 @@ import com.authservice.auth.service.AuthService;
 @WebMvcTest(AuthController.class)
 public class AuthControllerTest {
 
-    private static final String EMAIL = "testemail@test.com";
-    private static final String USER_ID = "testId";
-    private static final String PASSWORD = "Password-123";
-    private static final String WRONG_PASSWORD = "wrongPassword-123";
-    private static final String FIRST_NAME = "Jane";
-    private static final String LAST_NAME = "Doe";
-    private static final String USER_REGISTERED_MSG = "User registered successfully! Please check your email to verify your account before logging in.";
-    private static final String USER_AUTHENTICATED_MSG = "User authenticated";
-    private static final String TOKEN = "jwt-token-for-use-in-tests-123456789";
-
     @Autowired
     private MockMvc mockMvc;
 
     @MockBean
     private AuthService authService;
-
-    private String createSignUpRequest(String email, String password, String firstName, String lastName) {
-        return "{ \"email\": \"" + email 
-            + "\", \"password\": \"" + password 
-            + "\", \"firstName\": \"" + firstName 
-            + "\", \"lastName\": \"" + lastName + "\" }";
-    }
-
-    private String createLoginRequest(String email, String password) {
-        return "{ \"email\": \"" + email 
-            + "\", \"password\": \"" + password + "\" }";
-    }
-
-    private String createEmailRequest(String email) {
-        return "{ \"email\": \"" + email + "\" }";
-    }
-
-    private String createPasswordResetRequest(String token, String newPassword) {
-        return "{ \"token\": \"" + token 
-            + "\", \"newPassword\": \"" + newPassword + "\" }";
-    }
 
     @Test
     public void getUserByEmail_validEmail_returnsUserResponse() throws Exception {
@@ -124,7 +97,7 @@ public class AuthControllerTest {
         AuthResponseDTO response = new AuthResponseDTO(USER_REGISTERED_MSG);
         when(authService.registerUser(any(SignUpRequestDTO.class))).thenReturn(response);
 
-        String json = createSignUpRequest(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
+        String json = createSignUpRequestJson(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
 
         mockMvc.perform(post("/api/auth/signup")
             .contentType(MediaType.APPLICATION_JSON)
@@ -138,7 +111,7 @@ public class AuthControllerTest {
         when(authService.registerUser(any(SignUpRequestDTO.class)))
             .thenThrow(new EmailAlreadyExistsException());
 
-        String json = createSignUpRequest(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
+        String json = createSignUpRequestJson(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
 
         mockMvc.perform(post("/api/auth/signup")
             .contentType(MediaType.APPLICATION_JSON)
@@ -149,9 +122,9 @@ public class AuthControllerTest {
     @Test
     public void registerUser_mailServerError_returns500() throws Exception {
         when(authService.registerUser(any(SignUpRequestDTO.class)))
-            .thenThrow(new com.authservice.auth.exception.EmailSendException());
+            .thenThrow(new EmailSendException());
 
-        String json = createSignUpRequest(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
+        String json = createSignUpRequestJson(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
 
         mockMvc.perform(post("/api/auth/signup")
             .contentType(MediaType.APPLICATION_JSON)
@@ -164,7 +137,7 @@ public class AuthControllerTest {
         AuthResponseDTO response = new AuthResponseDTO(TOKEN, USER_AUTHENTICATED_MSG);
         when(authService.authenticateUser(any(LoginRequestDTO.class))).thenReturn(response);
 
-        String json = createLoginRequest(EMAIL, PASSWORD);
+        String json = createLoginRequestJson(EMAIL, PASSWORD);
 
         mockMvc.perform(post("/api/auth/login")
             .contentType(MediaType.APPLICATION_JSON)
@@ -179,7 +152,7 @@ public class AuthControllerTest {
         when(authService.authenticateUser(any(LoginRequestDTO.class)))
             .thenThrow(new IllegalArgumentException("Email or password is incorrect - please try again"));
 
-        String json = createLoginRequest(EMAIL, WRONG_PASSWORD);
+        String json = createLoginRequestJson(EMAIL, WRONG_PASSWORD);
 
         mockMvc.perform(post("/api/auth/login")
             .contentType(MediaType.APPLICATION_JSON)
@@ -190,9 +163,9 @@ public class AuthControllerTest {
     @Test
     public void authenticateUser_unverifiedEmail_returns403() throws Exception {
         when(authService.authenticateUser(any(LoginRequestDTO.class)))
-            .thenThrow(new com.authservice.auth.exception.EmailVerificationException());
+            .thenThrow(new EmailVerificationException());
 
-        String json = createLoginRequest(EMAIL, PASSWORD);
+        String json = createLoginRequestJson(EMAIL, PASSWORD);
 
         mockMvc.perform(post("/api/auth/login")
             .contentType(MediaType.APPLICATION_JSON)
@@ -238,7 +211,7 @@ public class AuthControllerTest {
 
     @Test
     public void resendVerificationEmail_validRequest_returnsOk() throws Exception {
-        String json = createEmailRequest(EMAIL);
+        String json = createEmailRequestJson(EMAIL);
 
         mockMvc.perform(post("/api/auth/resend-verification")
             .contentType(MediaType.APPLICATION_JSON)
@@ -254,7 +227,7 @@ public class AuthControllerTest {
         doThrow(new IllegalArgumentException("Email must be provided"))
             .when(authService).resendVerificationEmail(any());
 
-        String json = createEmailRequest("");
+        String json = createEmailRequestJson("");
 
         mockMvc.perform(post("/api/auth/resend-verification")
             .contentType(MediaType.APPLICATION_JSON)
@@ -267,7 +240,7 @@ public class AuthControllerTest {
         doThrow(new UserNotFoundException())
             .when(authService).resendVerificationEmail(any());
 
-        String json = createEmailRequest(EMAIL);
+        String json = createEmailRequestJson(EMAIL);
 
         mockMvc.perform(post("/api/auth/resend-verification")
             .contentType(MediaType.APPLICATION_JSON)
@@ -277,10 +250,10 @@ public class AuthControllerTest {
 
     @Test
     public void resendVerificationEmail_mailServerError_returns500() throws Exception {
-        doThrow(new com.authservice.auth.exception.EmailSendException())
+        doThrow(new EmailSendException())
             .when(authService).resendVerificationEmail(any());
 
-        String json = createEmailRequest(EMAIL);
+        String json = createEmailRequestJson(EMAIL);
 
         mockMvc.perform(post("/api/auth/resend-verification")
             .contentType(MediaType.APPLICATION_JSON)
@@ -293,7 +266,7 @@ public class AuthControllerTest {
         doThrow(new IllegalArgumentException("Email already verified - please log in"))
             .when(authService).resendVerificationEmail(any());
 
-        String json = createEmailRequest(EMAIL);
+        String json = createEmailRequestJson(EMAIL);
 
         mockMvc.perform(post("/api/auth/resend-verification")
             .contentType(MediaType.APPLICATION_JSON)
@@ -306,7 +279,7 @@ public class AuthControllerTest {
         doThrow(new TooManyRequestsException("Too many requests"))
             .when(authService).resendVerificationEmail(any());
 
-        String json = createEmailRequest(EMAIL);
+        String json = createEmailRequestJson(EMAIL);
 
         mockMvc.perform(post("/api/auth/resend-verification")
             .contentType(MediaType.APPLICATION_JSON)
@@ -316,7 +289,7 @@ public class AuthControllerTest {
 
     @Test
     public void sendPasswordResetEmail_validRequest_returnsOk() throws Exception {
-        String json = createEmailRequest(EMAIL);
+        String json = createEmailRequestJson(EMAIL);
 
         mockMvc.perform(post("/api/auth/send-reset-email")
             .contentType(MediaType.APPLICATION_JSON)
@@ -332,7 +305,7 @@ public class AuthControllerTest {
         doThrow(new IllegalArgumentException("Email must be provided"))
             .when(authService).sendPasswordResetEmail(any());
 
-        String json = createEmailRequest("");
+        String json = createEmailRequestJson("");
 
         mockMvc.perform(post("/api/auth/send-reset-email")
             .contentType(MediaType.APPLICATION_JSON)
@@ -345,7 +318,7 @@ public class AuthControllerTest {
         doThrow(new UserNotFoundException())
             .when(authService).sendPasswordResetEmail(any());
 
-        String json = createEmailRequest(EMAIL);
+        String json = createEmailRequestJson(EMAIL);
 
         mockMvc.perform(post("/api/auth/send-reset-email")
             .contentType(MediaType.APPLICATION_JSON)
@@ -358,7 +331,7 @@ public class AuthControllerTest {
         doThrow(new TooManyRequestsException("Too many requests"))
             .when(authService).sendPasswordResetEmail(any());
 
-        String json = createEmailRequest(EMAIL);
+        String json = createEmailRequestJson(EMAIL);
 
         mockMvc.perform(post("/api/auth/send-reset-email")
             .contentType(MediaType.APPLICATION_JSON)
@@ -368,10 +341,10 @@ public class AuthControllerTest {
 
     @Test
     public void sendPasswordResetEmail_mailServerError_returns500() throws Exception {
-        doThrow(new com.authservice.auth.exception.EmailSendException())
+        doThrow(new EmailSendException())
             .when(authService).sendPasswordResetEmail(any());
 
-        String json = createEmailRequest(EMAIL);
+        String json = createEmailRequestJson(EMAIL);
 
         mockMvc.perform(post("/api/auth/send-reset-email")
             .contentType(MediaType.APPLICATION_JSON)
@@ -381,7 +354,7 @@ public class AuthControllerTest {
 
     @Test
     public void resetPassword_validRequest_returnsOk() throws Exception {
-        String json = createPasswordResetRequest(TOKEN, PASSWORD);
+        String json = createPasswordResetRequestJson(TOKEN, PASSWORD);
 
         mockMvc.perform(post("/api/auth/reset-password")
             .contentType(MediaType.APPLICATION_JSON)
@@ -397,7 +370,7 @@ public class AuthControllerTest {
         doThrow(new InvalidTokenException("Invalid or expired token"))
             .when(authService).resetPassword(any());
 
-        String json = createPasswordResetRequest(TOKEN, PASSWORD);
+        String json = createPasswordResetRequestJson(TOKEN, PASSWORD);
 
         mockMvc.perform(post("/api/auth/reset-password")
             .contentType(MediaType.APPLICATION_JSON)
@@ -410,7 +383,7 @@ public class AuthControllerTest {
         doThrow(new UserNotFoundException())
             .when(authService).resetPassword(any());
 
-        String json = createPasswordResetRequest(TOKEN, PASSWORD);
+        String json = createPasswordResetRequestJson(TOKEN, PASSWORD);
 
         mockMvc.perform(post("/api/auth/reset-password")
             .contentType(MediaType.APPLICATION_JSON)
