@@ -227,12 +227,12 @@ button.navigationButton,
 button[type="submit"] {
   background-color: var(--color-primary) !important;
   border: none !important;
-  color: #fff !important;
+  color: var(--text-inverse) !important;
   border-radius: 999px !important;
   padding: 10px 20px !important;
   font-weight: 600 !important;
   letter-spacing: 0.02em !important;
-  box-shadow: 0 6px 18px rgba(123, 147, 255, 0.35) !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15) !important;
   transition: transform 0.08s ease, box-shadow 0.2s ease,
     background-color 0.2s ease !important;
   cursor: pointer;
@@ -245,7 +245,7 @@ button.navigationButton:hover,
 button[type="submit"]:hover {
   background-color: var(--color-primary-hover) !important;
   transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(123, 147, 255, 0.45) !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2) !important;
 }
 
 button.navigationButton:active,
@@ -254,7 +254,7 @@ button.navigationButton:active,
 .MuiButton-contained:active,
 button[type="submit"]:active {
   transform: translateY(0);
-  box-shadow: 0 4px 12px rgba(123, 147, 255, 0.35) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 }
 
 .btn-outline-primary,
@@ -408,8 +408,8 @@ select:focus,
   width: 60%;
   border-radius: 3px;
   background: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(123, 147, 255, 0.12),
-    0 6px 16px rgba(123, 147, 255, 0.35);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05),
+    0 6px 16px rgba(0, 0, 0, 0.15);
 }
 
 /* FOOTER */
@@ -485,13 +485,13 @@ select:focus,
 .activity-chip-button.active {
   background: var(--color-primary);
   border-color: var(--color-primary);
-  color: white;
-  box-shadow: 0 4px 12px rgba(123, 147, 255, 0.35);
+  color: var(--text-inverse);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   transform: translateY(0);
 }
 
 .activity-chip-button.active svg {
-  color: white;
+  color: var(--text-inverse);
 }
 
 /* Icon chips */
@@ -514,11 +514,11 @@ select:focus,
 
 .icon-chip.active {
   background: var(--color-primary);
-  box-shadow: 0 10px 22px rgba(123, 147, 255, 0.45);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.2);
 }
 
 .icon-chip.active svg {
-  color: #fff;
+  color: var(--text-inverse);
 }
 
 /* Duration Controls */
@@ -532,11 +532,11 @@ select:focus,
 .toggle-mode-btn {
   background-color: var(--color-primary) !important;
   border: none !important;
-  color: #fff !important;
+  color: var(--text-inverse) !important;
   border-radius: 999px !important;
   padding: 8px 16px !important;
   font-weight: 600 !important;
-  box-shadow: 0 4px 10px rgba(123, 147, 255, 0.35) !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
   transition: transform 0.08s ease, box-shadow 0.2s ease,
     background-color 0.2s ease !important;
   display: flex;
@@ -546,7 +546,7 @@ select:focus,
 .toggle-mode-btn:hover {
   background-color: var(--color-primary-hover) !important;
   transform: translateY(-1px);
-  box-shadow: 0 6px 14px rgba(123, 147, 255, 0.45) !important;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.2) !important;
 }
 
 .duration-input-container {
@@ -628,27 +628,27 @@ select:focus,
 
 .mic-button {
   background-color: var(--color-primary) !important;
-  color: #fff !important;
+  color: var(--text-inverse) !important;
   border-radius: 50% !important;
   width: 64px !important;
   height: 64px !important;
   display: flex !important;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 18px rgba(123, 147, 255, 0.35) !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15) !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   margin-bottom: 8px;
 }
 
 .mic-button:hover {
   background-color: var(--color-primary-hover) !important;
-  box-shadow: 0 10px 24px rgba(123, 147, 255, 0.45) !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2) !important;
   transform: translateY(-2px);
 }
 
 .mic-button.active {
-  background-color: #dc2626 !important;
-  box-shadow: 0 10px 22px rgba(255, 99, 99, 0.45) !important;
+  background-color: var(--color-error) !important;
+  box-shadow: 0 10px 22px rgba(220, 38, 38, 0.3) !important;
   animation: pulse 1.5s infinite;
 }
 
@@ -656,7 +656,7 @@ select:focus,
   width: 40px !important;
   height: 40px !important;
   background-color: var(--color-primary) !important;
-  box-shadow: 0 4px 10px rgba(123, 147, 255, 0.35) !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
 }
 
 .mic-button.small:hover {

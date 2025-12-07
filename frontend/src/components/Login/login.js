@@ -33,6 +33,10 @@ const Login = ({ onLogin }) => {
       );
 
       if (response.status === 200) {
+        // Store the JWT token for authenticated API calls
+        if (response.data.jwt) {
+          localStorage.setItem("jwt", response.data.jwt);
+        }
         onLogin(email);
         navigate("/trackExercise");
       }

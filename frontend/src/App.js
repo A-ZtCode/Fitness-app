@@ -21,6 +21,7 @@ import logo from "./img/CFG_logo.png";
 import { ChatbotProvider } from "./contexts/chatbotContext.js";
 import ChatbotOverlay from "./components/ChatBot/ChatbotOverlay.js";
 import { ThemeProvider } from "./contexts/ThemeContext.js";
+import { MuiThemeWrapper } from "./contexts/MuiThemeProvider.js";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -38,9 +39,10 @@ function App() {
 
   return (
     <ThemeProvider>
-      <ChatbotProvider>
-        <div className="App">
-          <Router>
+      <MuiThemeWrapper>
+        <ChatbotProvider>
+          <div className="App">
+            <Router>
             <header className="appHeader">
               <div className="appHeader-left">
                 <img src={logo} alt="CFG Fitness App Logo" id="appLogo" />
@@ -170,12 +172,13 @@ function App() {
               </Routes>
             </div>
 
-            {isLoggedIn && <ChatbotOverlay currentUser={currentUser} />}
+              {isLoggedIn && <ChatbotOverlay currentUser={currentUser} />}
 
-            <Footer />
-          </Router>
-        </div>
-      </ChatbotProvider>
+              <Footer />
+            </Router>
+          </div>
+        </ChatbotProvider>
+      </MuiThemeWrapper>
     </ThemeProvider>
   );
 }
