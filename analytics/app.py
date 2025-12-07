@@ -14,6 +14,14 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 import jwt
 from functools import wraps
+import hashlib
+
+def anonymize_username(username):
+    """Anonymize username for logging purposes"""
+    if not username:
+        return "unknown"
+    hash_object = hashlib.md5(username.encode())
+    return f"user_{hash_object.hexdigest()[:8]}"
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"},
@@ -149,7 +157,7 @@ def user_stats(username):
         stats = list(db.exercises.aggregate(pipeline))
         return jsonify(stats=stats)
     except Exception as e:
-        logging.error(f"Error fetching user stats for {username}: {e}")
+        logging.error(f"Error fetching user stats for{anonymize_username(username)}: {e}")
         traceback.print_exc()
         return jsonify(error="An internal error occurred"), 500
 

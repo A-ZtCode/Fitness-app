@@ -47,7 +47,6 @@ const ChatbotOverlay = ({ currentUser }) => {
         }
       }, 500);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   const handleSend = async () => {
@@ -131,7 +130,6 @@ const ChatbotOverlay = ({ currentUser }) => {
               </div>
             )}
 
-            {/* Inline Suggestions */}
             {suggestions.length > 0 && !isLoading && (
               <div className="inline-suggestions">
                 {suggestions.map((suggestion, index) => (

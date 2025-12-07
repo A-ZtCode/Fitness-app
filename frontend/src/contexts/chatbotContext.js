@@ -86,8 +86,8 @@ export const ChatbotProvider = ({ children }) => {
         isLoading,
         currentScreen,
         setCurrentScreen,
-        suggestions,        // Add this
-        setSuggestions,     // Add this
+        suggestions,
+        setSuggestions,
         getSuggestions,
         resetConversation
         }}
