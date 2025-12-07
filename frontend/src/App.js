@@ -72,28 +72,17 @@ function App() {
                     xmlns="http://www.w3.org/2000/svg"
                     className="hero-svg"
                   >
-                    <defs>
-                      <linearGradient
-                        id="grad"
-                        x1="0%"
-                        y1="0%"
-                        x2="100%"
-                        y2="0%"
-                      >
-                        <stop offset="0%" stopColor="rgba(123,147,255,0.35)" />
-                        <stop offset="100%" stopColor="rgba(64,91,255,0.35)" />
-                      </linearGradient>
-                    </defs>
                     <path
                       d="M10 110 Q 40 20, 80 70 T 150 60 T 220 40 T 290 50"
-                      stroke="url(#grad)"
+                      stroke="var(--color-primary)"
                       strokeWidth="8"
                       fill="none"
                       strokeLinecap="round"
+                      opacity="0.5"
                     />
-                    <circle cx="80" cy="70" r="6" fill="#7b93ff" />
-                    <circle cx="150" cy="60" r="6" fill="#7b93ff" />
-                    <circle cx="220" cy="40" r="6" fill="#7b93ff" />
+                    <circle cx="80" cy="70" r="6" fill="var(--color-primary)" />
+                    <circle cx="150" cy="60" r="6" fill="var(--color-primary)" />
+                    <circle cx="220" cy="40" r="6" fill="var(--color-primary)" />
                   </svg>
                 </div>
               </section>

@@ -36,7 +36,7 @@ const ThemeSelector = () => {
           display: "flex",
           flexWrap: "wrap",
           gap: 2,
-          justifyContent: "flex-start",
+          justifyContent: { xs: "center", md: "flex-start" },
         }}
       >
         {Object.entries(themes).map(([key, theme]) => (

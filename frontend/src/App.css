@@ -745,12 +745,16 @@ select:focus,
   }
 
   .appHeader {
-    flex-direction: column;
+    flex-direction: row;
     gap: var(--gap-2);
   }
 
   .appHeader-left {
-    justify-content: center;
+    justify-content: flex-start;
+  }
+
+  .appHeader-right {
+    margin-left: auto;
   }
 
   .hero-content h2 {

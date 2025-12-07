@@ -13,6 +13,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { useTheme, themes } from "../../contexts/ThemeContext.js";
 
 // Utility function to convert total minutes to hours and minutes
 const toHoursAndMinutes = (totalMinutes) => {
@@ -47,8 +48,6 @@ const ACCENT_COLOR_PRIMARY = "#5B53D0"; // Deep Blue/Violet for main elements
 const ACCENT_COLOR_SECONDARY = "#ff0073"; // Vibrant Pink for highlights
 const COLOR_HIGH_CONTRAST = "#FF8C00"; // Dark Orange for high contrast elements
 const NEUTRAL_COLOR_LIGHT = "#E0E0E0"; // Light grey for backgrounds/neutral elements
-const COLOR_DURATION = ACCENT_COLOR_PRIMARY; // Use primary for Duration
-
 // CHART_COLORS - Expanded vibrant palette for 20+ different activities
 const CHART_COLORS = [
   "#5B53D0", // 1. Deep Purple (brand color)
@@ -76,6 +75,10 @@ const CHART_COLORS = [
 ];
 
 const Statistics = ({ currentUser }) => {
+  const { currentTheme } = useTheme();
+  const themeColors = themes[currentTheme]?.colors || themes.light.colors;
+  const primaryColor = themeColors["color-primary"];
+
   const [weeklySummary, setWeeklySummary] = useState({
     totalDuration: 0,
     totalTypes: 0,
@@ -321,10 +324,10 @@ const Statistics = ({ currentUser }) => {
                     type="monotone"
                     dataKey="Duration"
                     name="Active Time"
-                    stroke={COLOR_DURATION}
+                    stroke={primaryColor}
                     strokeWidth={3}
-                    dot={{ r: 3 }}
-                    activeDot={{ r: 5 }}
+                    dot={{ r: 3, fill: primaryColor }}
+                    activeDot={{ r: 5, fill: primaryColor }}
                   />
                 </LineChart>
               </ResponsiveContainer>
