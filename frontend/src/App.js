@@ -22,6 +22,8 @@ import { ChatbotProvider } from "./contexts/chatbotContext.js";
 import ChatbotOverlay from "./components/ChatBot/ChatbotOverlay.js";
 import { ThemeProvider } from "./contexts/ThemeContext.js";
 import { MuiThemeWrapper } from "./contexts/MuiThemeProvider.js";
+import ForgotPassword from "./components/ForgottenPassword/forgottenPassword.js";
+import ResetPassword from "./components/ResetPassword/resetPassword.js";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);

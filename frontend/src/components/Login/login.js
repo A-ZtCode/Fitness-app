@@ -19,11 +19,37 @@ const Login = ({ onLogin }) => {
   const [error, setError] = useState("");
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+  // State for unverified email flow (from main)
+  const [unverified, setUnverified] = useState(false);
+  const [resendStatus, setResendStatus] = useState("idle"); // "idle" | "sending" | "sent" | "error"
+  const [resendError, setResendError] = useState("");
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleResendVerification = async () => {
+    setResendStatus("sending");
+    setResendError("");
+    try {
+      const response = await axios.post(
+        "http://localhost:8080/api/auth/resend-verification",
+        { email }
+      );
+
+      if (response.status === 200) {
+        setResendStatus("sent");
+      }
+    } catch (err) {
+      setResendStatus("error");
+      setResendError(
+        err.response?.data?.message ||
+          "Failed to send email, please try again later"
+      );
+    }
+  };
+
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
+    setUnverified(false);
     setLoading(true);
 
     try {
@@ -33,7 +59,6 @@ const Login = ({ onLogin }) => {
       );
 
       if (response.status === 200) {
-        // Store the JWT token for authenticated API calls
         if (response.data.jwt) {
           localStorage.setItem("jwt", response.data.jwt);
         }
@@ -41,10 +66,16 @@ const Login = ({ onLogin }) => {
         navigate("/trackExercise");
       }
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Login failed. Please check your credentials and try again."
-      );
+      if (err.response && err.response.status === 403) {
+        setError(
+          "Your account has not been verified. Please click the link sent to your email."
+        );
+        setUnverified(true);
+      } else if (err.response?.data?.message && err.response.status === 401) {
+        setError(err.response.data.message);
+      } else {
+        setError("Failed to login");
+      }
     } finally {
       setLoading(false);
     }
@@ -147,14 +178,16 @@ const Login = ({ onLogin }) => {
 
         {error && (
           <Alert
-            severity="error"
+            severity={unverified ? "warning" : "error"}
             sx={{
               mb: 3,
-              backgroundColor: "var(--color-error-bg)",
+              backgroundColor: unverified
+                ? "var(--color-warning-bg)"
+                : "var(--color-error-bg)",
               color: "var(--text-primary)",
-              border: "1px solid var(--color-error)",
+              border: `1px solid ${unverified ? "var(--color-warning)" : "var(--color-error)"}`,
               "& .MuiAlert-icon": {
-                color: "var(--color-error)",
+                color: unverified ? "var(--color-warning)" : "var(--color-error)",
               },
             }}
           >
@@ -162,7 +195,48 @@ const Login = ({ onLogin }) => {
           </Alert>
         )}
 
-        <Box component="form" onSubmit={handleSubmit} noValidate>
+        {/* Resend verification email UI */}
+        {unverified && (
+          <Box sx={{ mb: 3, textAlign: "center" }}>
+            <Typography variant="body2" color="var(--text-secondary)">
+              Didn't receive the email?{" "}
+              <Button
+                variant="text"
+                disabled={resendStatus === "sending"}
+                onClick={handleResendVerification}
+                sx={{
+                  textTransform: "none",
+                  color: "var(--color-primary)",
+                  fontWeight: 600,
+                  p: 0,
+                  minWidth: "auto",
+                  "&:hover": {
+                    backgroundColor: "transparent",
+                    textDecoration: "underline",
+                  },
+                }}
+              >
+                {resendStatus === "sending" ? (
+                  <CircularProgress size={16} sx={{ color: "var(--color-primary)" }} />
+                ) : (
+                  "Resend email"
+                )}
+              </Button>
+            </Typography>
+            {resendStatus === "sent" && (
+              <Typography variant="body2" color="var(--color-success)" sx={{ mt: 1 }}>
+                Verification email sent!
+              </Typography>
+            )}
+            {resendStatus === "error" && (
+              <Typography variant="body2" color="var(--color-error)" sx={{ mt: 1 }}>
+                {resendError}
+              </Typography>
+            )}
+          </Box>
+        )}
+
+        <Box component="form" onSubmit={handleLogin} noValidate>
           <Stack spacing={3}>
             {/* Email Field */}
             <Box sx={{ position: "relative" }}>
@@ -254,19 +328,16 @@ const Login = ({ onLogin }) => {
                 color: "#FFFFFF",
                 boxShadow: "var(--shadow-md)",
                 transition: "all 0.3s ease",
-
                 "&.Mui-disabled": {
                   backgroundColor: "var(--border-medium)",
                   color: "var(--text-muted)",
                   opacity: 0.6,
                 },
-
                 "&:hover": {
                   backgroundColor: "var(--color-primary-hover)",
                   boxShadow: "var(--shadow-lg)",
                   transform: "translateY(-1px)",
                 },
-
                 "&:active": {
                   transform: "translateY(0)",
                 },
