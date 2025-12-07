@@ -187,6 +187,20 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
+/* Error message */
+.error-message {
+  margin-top: 1rem;
+  padding: 16px;
+  border-radius: 10px;
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  border: 2px solid var(--color-error);
+  text-align: center;
+  font-weight: 600;
+  animation: slideIn 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
 /* ============================================================================
    RESPONSIVE ADJUSTMENTS FOR READABILITY
    ============================================================================ */

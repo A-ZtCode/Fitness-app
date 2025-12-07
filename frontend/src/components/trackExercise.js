@@ -722,7 +722,11 @@ const TrackExercise = ({ currentUser }) => {
               </Button>
             </OverlayTrigger>
           </div>
-          {message && <p className="success-message">{message}</p>}
+          {message && (
+            <p className={message.includes("❌") || message.includes("Failed") ? "error-message" : "success-message"}>
+              {message}
+            </p>
+          )}
         </Form>
       </div>
 
