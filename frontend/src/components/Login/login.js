@@ -63,7 +63,7 @@ const Login = ({ onLogin }) => {
           localStorage.setItem("jwt", response.data.jwt);
         }
         onLogin(email);
-        navigate("/trackExercise");
+        navigate("/statistics");
       }
     } catch (err) {
       if (err.response && err.response.status === 403) {
@@ -185,9 +185,13 @@ const Login = ({ onLogin }) => {
                 ? "var(--color-warning-bg)"
                 : "var(--color-error-bg)",
               color: "var(--text-primary)",
-              border: `1px solid ${unverified ? "var(--color-warning)" : "var(--color-error)"}`,
+              border: `1px solid ${
+                unverified ? "var(--color-warning)" : "var(--color-error)"
+              }`,
               "& .MuiAlert-icon": {
-                color: unverified ? "var(--color-warning)" : "var(--color-error)",
+                color: unverified
+                  ? "var(--color-warning)"
+                  : "var(--color-error)",
               },
             }}
           >
@@ -217,19 +221,30 @@ const Login = ({ onLogin }) => {
                 }}
               >
                 {resendStatus === "sending" ? (
-                  <CircularProgress size={16} sx={{ color: "var(--color-primary)" }} />
+                  <CircularProgress
+                    size={16}
+                    sx={{ color: "var(--color-primary)" }}
+                  />
                 ) : (
                   "Resend email"
                 )}
               </Button>
             </Typography>
             {resendStatus === "sent" && (
-              <Typography variant="body2" color="var(--color-success)" sx={{ mt: 1 }}>
+              <Typography
+                variant="body2"
+                color="var(--color-success)"
+                sx={{ mt: 1 }}
+              >
                 Verification email sent!
               </Typography>
             )}
             {resendStatus === "error" && (
-              <Typography variant="body2" color="var(--color-error)" sx={{ mt: 1 }}>
+              <Typography
+                variant="body2"
+                color="var(--color-error)"
+                sx={{ mt: 1 }}
+              >
                 {resendError}
               </Typography>
             )}
