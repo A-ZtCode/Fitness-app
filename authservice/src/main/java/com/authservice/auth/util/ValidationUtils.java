@@ -34,4 +34,10 @@ public class ValidationUtils {
             throw new ValidationException("Invalid email format");
         }
     }
+
+    public static String normaliseAndValidateEmail(String email) {
+        String normalised = email.trim().toLowerCase();
+        validateEmailAddressConstraints(normalised);
+        return normalised;
+    }
 }

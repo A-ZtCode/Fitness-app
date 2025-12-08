@@ -1,491 +1,396 @@
 package com.authservice.auth.controller;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
-import org.junit.jupiter.api.BeforeEach;
+import static com.authservice.auth.TestUtils.*;
+
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.mockito.ArgumentCaptor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.Instant;
-import java.util.Collections;
-import java.util.Optional;
-
+import com.authservice.auth.config.SecurityConfig;
 import com.authservice.auth.dto.AuthResponseDTO;
-import com.authservice.auth.exception.InvalidTokenException;
-import com.authservice.auth.dto.ErrorResponseDTO;
-import com.authservice.auth.dto.SignUpRequestDTO;
 import com.authservice.auth.dto.LoginRequestDTO;
-import com.authservice.auth.dto.PasswordResetDTO;
-import com.authservice.auth.dto.UpdateUserRequestDTO;
+import com.authservice.auth.dto.SignUpRequestDTO;
 import com.authservice.auth.dto.UserResponseDTO;
-import com.authservice.auth.model.User;
-import com.authservice.auth.repository.UserRepository;
-import com.authservice.auth.service.EmailService;
-import com.authservice.auth.service.JwtService;
+import com.authservice.auth.exception.EmailAlreadyExistsException;
+import com.authservice.auth.exception.EmailSendException;
+import com.authservice.auth.exception.EmailVerificationException;
+import com.authservice.auth.exception.InvalidTokenException;
+import com.authservice.auth.exception.TooManyRequestsException;
+import com.authservice.auth.exception.UserNotFoundException;
+import com.authservice.auth.service.AuthService;
 
+@WebMvcTest(AuthController.class)
+@Import(SecurityConfig.class)
 public class AuthControllerTest {
 
-    private static final String PASSWORD = "testPassword";
-    private static final String WRONG_PASSWORD = "wrongPassword";
-    private static final String ENCODED_PASSWORD = "encodedPassword";
-    private static final String EMAIL = "testemail@test.com";
-    private static final String USER_ID = "testId";
-    private static final String FIRST_NAME = "Jane";
-    private static final String LAST_NAME = "Doe";
-    private static final String USER_REGISTERED_MSG = "User registered successfully! Please check your email to verify your account before logging in.";
-    private static final String EMAIL_EXISTS_MSG = "Email already registered - please log in";
-    private static final String USER_AUTHENTICATED_MSG = "User authenticated";
-    private static final String INVALID_CREDENTIALS_MSG = "Email or password is incorrect - please try again";
-    private static final String JWT = "jwt-token-for-use-in-tests-123456789";
+    @Autowired
+    private MockMvc mockMvc;
 
-    // Mock dependencies
-    @Mock
-    private UserRepository userRepository;
+    @MockBean
+    private AuthService authService;
 
-    @Mock
-    private PasswordEncoder passwordEncoder;
-
-    @Mock
-    private JwtService jwtService;
-
-    @Mock 
-    private EmailService emailService;
-
-    @InjectMocks
-    private AuthController authController;
-
-    @BeforeEach
-    public void setUp() {
-        MockitoAnnotations.openMocks(this);
-        when(jwtService.createUserToken(any(String.class))).thenReturn(JWT);
-    }
-
-    private SignUpRequestDTO createSignUpRequest(String email, String password) {
-        SignUpRequestDTO request = new SignUpRequestDTO();
-        request.setEmail(email);
-        request.setPassword(password);
-        request.setFirstName(FIRST_NAME);
-        request.setLastName(LAST_NAME);
-        return request;
-    }
-
-    private LoginRequestDTO createLoginRequest(String email, String password) {
-        LoginRequestDTO request = new LoginRequestDTO();
-        request.setEmail(email);
-        request.setPassword(password);
-        return request;
-    }
-
-    private User createUser(String email, String password, String firstName, String lastName) {
-        User user = new User();
-        user.setId(USER_ID);
-        user.setEmail(email);
-        user.setPassword(password);
-        user.setFirstName(firstName);
-        user.setLastName(lastName);
-        return user;
-    }
-
-    // Tests for sign up
     @Test
-    public void registerUser_whenEmailDoesNotExist_registersUser() {
-        SignUpRequestDTO request = createSignUpRequest(EMAIL, PASSWORD);
+    public void getUserByEmail_validEmail_returnsUserResponse() throws Exception {
+        UserResponseDTO userDto = new UserResponseDTO();
+        when(authService.getUserByEmail(EMAIL)).thenReturn(userDto);
 
-        when(userRepository.existsByEmail(EMAIL))
-            .thenReturn(false);
-        when(passwordEncoder.encode(PASSWORD))
-            .thenReturn(ENCODED_PASSWORD);
+        mockMvc.perform(get("/api/auth/user")
+            .param("email", EMAIL))
+            .andExpect(status().isOk());
 
-        ResponseEntity<?> response = authController.registerUser(request);
-        AuthResponseDTO body = (AuthResponseDTO) response.getBody();
-        verify(userRepository).existsByEmail(EMAIL);
-
-        assertEquals(200, response.getStatusCodeValue());
-        assertEquals(USER_REGISTERED_MSG, body.getMessage());
-
-        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository, times(2)).save(userCaptor.capture());
-        User savedUser = userCaptor.getValue();
-
-        assertEquals(ENCODED_PASSWORD, savedUser.getPassword());
-        assertEquals(EMAIL, savedUser.getEmail());
-        assertEquals(FIRST_NAME, savedUser.getFirstName());
-        assertEquals(LAST_NAME, savedUser.getLastName());
+        verify(authService).getUserByEmail(EMAIL);
     }
 
     @Test
-    public void registerUser_whenEmailExists_returnsBadRequest() {
-        SignUpRequestDTO request = createSignUpRequest(EMAIL, PASSWORD);
+    public void getUserByEmail_userDoesNotExist_returns404() throws Exception {
+        when(authService.getUserByEmail(EMAIL)).thenThrow(new UserNotFoundException());
 
-        when(userRepository.existsByEmail(EMAIL))
-            .thenReturn(true);
-
-        ResponseEntity<?> response = authController.registerUser(request);
-        ErrorResponseDTO body = (ErrorResponseDTO) response.getBody();
-        verify(userRepository).existsByEmail(EMAIL);
-
-        assertEquals(400, response.getStatusCodeValue());
-        assertEquals(EMAIL_EXISTS_MSG, body.getMessage());
-        verify(userRepository, never()).save(any(User.class));
-    }
-
-    // Tests for login
-
-    @Test
-    public void authenticateUser_whenEmailDoesNotExist_returnsUnauthorized() {
-        LoginRequestDTO request = createLoginRequest(EMAIL, PASSWORD);
-
-        when(userRepository.findByEmail(EMAIL))
-            .thenReturn(null);
-
-        ResponseEntity<?> response = authController.authenticateUser(request);
-        ErrorResponseDTO body = (ErrorResponseDTO) response.getBody();
-        verify(userRepository).findByEmail(EMAIL);
-
-        assertEquals(401, response.getStatusCodeValue());
-        assertEquals(INVALID_CREDENTIALS_MSG, body.getMessage());
+        mockMvc.perform(get("/api/auth/user")
+            .param("email", EMAIL))
+            .andExpect(status().isNotFound());
     }
 
     @Test
-    public void authenticateUser_whenEmailAndPasswordCorrect_authenticatesUser() {
-        LoginRequestDTO request = createLoginRequest(EMAIL, PASSWORD);
-        User existingUser = createUser(EMAIL, ENCODED_PASSWORD, FIRST_NAME, LAST_NAME);
-        existingUser.setVerified(true);
-
-        when(userRepository.findByEmail(EMAIL))
-            .thenReturn(existingUser);
-        when(passwordEncoder.matches(PASSWORD, ENCODED_PASSWORD))
-            .thenReturn(true);
-
-        ResponseEntity<?> response = authController.authenticateUser(request);
-        AuthResponseDTO body = (AuthResponseDTO) response.getBody();
-        verify(userRepository).findByEmail(EMAIL);
-
-        assertEquals(200, response.getStatusCodeValue());
-        assertEquals(USER_AUTHENTICATED_MSG, body.getMessage());
-        assertEquals(JWT, body.getJwt());
+    public void getUserByEmail_missingEmail_returns400() throws Exception {
+        mockMvc.perform(get("/api/auth/user"))
+            .andExpect(status().isBadRequest());
     }
 
     @Test
-    public void authenticateUser_whenEmailCorrectPasswordIncorrect_returnsUnauthorized() {
-        LoginRequestDTO request = createLoginRequest(EMAIL, WRONG_PASSWORD);
-        User existingUser = createUser(EMAIL, ENCODED_PASSWORD, FIRST_NAME, LAST_NAME);
-        existingUser.setVerified(true);
+    public void getUserById_validId_returnsUserResponse() throws Exception {
+        UserResponseDTO userDto = new UserResponseDTO();
+        when(authService.getUserById(USER_ID)).thenReturn(userDto);
 
-        when(userRepository.findByEmail(EMAIL))
-            .thenReturn(existingUser);
-        when(passwordEncoder.matches(WRONG_PASSWORD, ENCODED_PASSWORD))
-            .thenReturn(false);
+        mockMvc.perform(get("/api/auth/user/{id}", USER_ID))
+            .andExpect(status().isOk());
 
-        ResponseEntity<?> response = authController.authenticateUser(request);
-        ErrorResponseDTO body = (ErrorResponseDTO) response.getBody();
-        verify(userRepository).findByEmail(EMAIL);
-
-        assertEquals(401, response.getStatusCodeValue());
-        assertEquals(INVALID_CREDENTIALS_MSG, body.getMessage());
-    }
-
-    // Tests for get/patch user
-    @Test
-    public void getUserByEmail_whenUserExists_returnsUser() {
-        User user = createUser(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
-
-        when(userRepository.findByEmail(EMAIL))
-            .thenReturn(user);
-
-        ResponseEntity<?> response = authController.getUserByEmail(EMAIL);
-        verify(userRepository).findByEmail(EMAIL);
-
-        assertEquals(200, response.getStatusCodeValue());
-        assertTrue(response.getBody() instanceof UserResponseDTO);
-
-        UserResponseDTO userDto = (UserResponseDTO) response.getBody();
-        assertEquals(user.getId(), userDto.getId());
-        assertEquals(user.getEmail(), userDto.getEmail());
-        assertEquals(user.getFirstName(), userDto.getFirstName());
-        assertEquals(user.getLastName(), userDto.getLastName());
+        verify(authService).getUserById(USER_ID);
     }
 
     @Test
-    public void getUserByEmail_whenUserDoesNotExist_returnsNotFound() {
-        when(userRepository.findByEmail(EMAIL))
-            .thenReturn(null);
+    public void getUserById_userDoesNotExist_returns404() throws Exception {
+        when(authService.getUserById(USER_ID)).thenThrow(new UserNotFoundException());
 
-        ResponseEntity<?> response = authController.getUserByEmail(EMAIL);
-        verify(userRepository).findByEmail(EMAIL);
-
-        assertEquals(404, response.getStatusCodeValue());
-        assertEquals("User not found", response.getBody());
+        mockMvc.perform(get("/api/auth/user/{id}", USER_ID))
+            .andExpect(status().isNotFound());
     }
 
     @Test
-    public void getUserByEmail_whenEmailIsNull_returnsBadRequest() {
-        ResponseEntity<?> response = authController.getUserByEmail(null);
-        assertEquals(400, response.getStatusCodeValue());
-        assertEquals("Email is required", response.getBody());
+    public void getUserById_missingId_returns400() throws Exception {
+        mockMvc.perform(get("/api/auth/user/{id}", ""))
+            .andExpect(status().isBadRequest());
     }
 
     @Test
-    public void getUserById_whenUserExists_returnsUser() {
-        User user = createUser(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
-        when(userRepository.findById(user.getId()))
-            .thenReturn(Optional.of(user));
+    public void registerUser_validRequest_returnsOk() throws Exception {
+        AuthResponseDTO response = new AuthResponseDTO(USER_REGISTERED_MSG);
+        when(authService.registerUser(any(SignUpRequestDTO.class))).thenReturn(response);
 
-        ResponseEntity<?> response = authController.getUserById(user.getId());
-        verify(userRepository).findById(user.getId());
+        String json = createSignUpRequestJson(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
 
-        assertEquals(200, response.getStatusCodeValue());
-        assertTrue(response.getBody() instanceof UserResponseDTO);
-
-        UserResponseDTO userDto = (UserResponseDTO) response.getBody();
-        assertEquals(user.getId(), userDto.getId());
-        assertEquals(user.getEmail(), userDto.getEmail());
-        assertEquals(user.getFirstName(), userDto.getFirstName());
-        assertEquals(user.getLastName(), userDto.getLastName());
+        mockMvc.perform(post("/api/auth/signup")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.message").value(USER_REGISTERED_MSG));
     }
 
     @Test
-    public void getUserById_whenUserDoesNotExist_returnsNotFound() {    
-        when(userRepository.findById(USER_ID))
-            .thenReturn(Optional.empty());
+    public void registerUser_emailAlreadyExists_returns409() throws Exception {
+        when(authService.registerUser(any(SignUpRequestDTO.class)))
+            .thenThrow(new EmailAlreadyExistsException());
 
-        ResponseEntity<?> response = authController.getUserById(USER_ID);
-        verify(userRepository).findById(USER_ID);
+        String json = createSignUpRequestJson(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
 
-        assertEquals(404, response.getStatusCodeValue());
-        assertEquals("User not found", response.getBody());
+        mockMvc.perform(post("/api/auth/signup")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json))
+            .andExpect(status().isConflict());
     }
 
     @Test
-    public void getUserById_whenIdIsNull_returnsBadRequest() {
-        ResponseEntity<?> response = authController.getUserById(null);
-        assertEquals(400, response.getStatusCodeValue());
-        assertEquals("User ID is required", response.getBody());
-    
+    public void registerUser_mailServerError_returns500() throws Exception {
+        when(authService.registerUser(any(SignUpRequestDTO.class)))
+            .thenThrow(new EmailSendException());
+
+        String json = createSignUpRequestJson(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
+
+        mockMvc.perform(post("/api/auth/signup")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json))
+            .andExpect(status().isInternalServerError());
     }
 
     @Test
-    public void updateUserDetails_whenUserDoesNotExist_returnsNotFound() {
-        UpdateUserRequestDTO updateRequest = new UpdateUserRequestDTO();
-        updateRequest.setFirstName("NewFirstName");
+    public void authenticateUser_validRequest_returnsOk() throws Exception {
+        AuthResponseDTO response = new AuthResponseDTO(TOKEN, USER_AUTHENTICATED_MSG);
+        when(authService.authenticateUser(any(LoginRequestDTO.class))).thenReturn(response);
 
-        when(userRepository.findById(USER_ID))
-            .thenReturn(Optional.empty());
+        String json = createLoginRequestJson(EMAIL, PASSWORD);
 
-        ResponseEntity<?> response = authController.updateUserDetails(USER_ID, updateRequest);
-        verify(userRepository).findById(USER_ID);
-
-        assertEquals(404, response.getStatusCodeValue());
-        assertEquals("User not found", response.getBody());
+        mockMvc.perform(post("/api/auth/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.message").value(USER_AUTHENTICATED_MSG))
+            .andExpect(jsonPath("$.jwt").value(TOKEN));
     }
 
     @Test
-    public void updateUserDetails_whenUserExists_updatesUser() {
-        User user = createUser(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
-        UpdateUserRequestDTO updateRequest = new UpdateUserRequestDTO();
-        updateRequest.setFirstName("NewFirstName");
-        updateRequest.setLastName("NewLastName");
+    public void authenticateUser_incorrectCredentials_returns400() throws Exception {
+        when(authService.authenticateUser(any(LoginRequestDTO.class)))
+            .thenThrow(new IllegalArgumentException("Email or password is incorrect - please try again"));
 
-        when(userRepository.findById(USER_ID))
-            .thenReturn(Optional.of(user));
+        String json = createLoginRequestJson(EMAIL, WRONG_PASSWORD);
 
-        ResponseEntity<?> response = authController.updateUserDetails(USER_ID, updateRequest);
-        verify(userRepository).findById(USER_ID);
-
-        assertEquals(200, response.getStatusCodeValue());
-        assertEquals("User details updated successfully", response.getBody());
-        verify(userRepository).save(user);
-        assertEquals("NewFirstName", user.getFirstName());
-        assertEquals("NewLastName", user.getLastName());
-        assertEquals(USER_ID, user.getId());
-        assertEquals(EMAIL, user.getEmail());
-        assertEquals(PASSWORD, user.getPassword());
-    }
-
-    // Tests for verify
-    @Test
-    public void verifyEmail_whenTokenIsExpired_throwsInvalidTokenException() {
-        String expiredToken = "expired";
-        when(emailService.extractUserIdFromToken(expiredToken))
-            .thenThrow(new InvalidTokenException("Invalid or expired token"));
-
-        assertThrows(
-            InvalidTokenException.class, 
-            () -> authController.verifyEmail(expiredToken)
-        );
+        mockMvc.perform(post("/api/auth/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json))
+            .andExpect(status().isBadRequest());
     }
 
     @Test
-    public void verifyEmail_whenValidToken_verifiesUser() {
-        final String TOKEN = "valid-verification-token";
-        when(emailService.extractUserIdFromToken(TOKEN)).thenReturn(USER_ID);
+    public void authenticateUser_unverifiedEmail_returns403() throws Exception {
+        when(authService.authenticateUser(any(LoginRequestDTO.class)))
+            .thenThrow(new EmailVerificationException());
 
-        User user = createUser(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
-        user.setId(USER_ID);
+        String json = createLoginRequestJson(EMAIL, PASSWORD);
 
-        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
-
-        ResponseEntity<?> response = authController.verifyEmail(TOKEN);
-
-        verify(emailService).extractUserIdFromToken(TOKEN);
-        verify(userRepository).findById(USER_ID);
-        verify(userRepository).save(user);
-
-        assertEquals(200, response.getStatusCodeValue());
-        assertEquals("Email verified successfully", response.getBody());
-        assertTrue(user.isVerified());
+        mockMvc.perform(post("/api/auth/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json))
+            .andExpect(status().isForbidden());
     }
 
     @Test
-    public void resendVerificationEmail_whenRequestTooSoon_ReturnsTooManyRequests() {
-        User user = createUser(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
-        user.setVerificationEmailSentAt(Instant.now());
+    public void verifyEmail_validRequest_returnsOk() throws Exception {
+        mockMvc.perform(get("/api/auth/verify")
+            .param("token", TOKEN))
+            .andExpect(status().isOk())
+            .andExpect(content().string("Email verified successfully"));
 
-        when(userRepository.findByEmail(EMAIL)).thenReturn(user);
-
-        ResponseEntity<?> response = authController.resendVerificationEmail(Collections.singletonMap("email", EMAIL));
-
-        verify(userRepository).findByEmail(EMAIL);
-
-        assertEquals(429, response.getStatusCodeValue());
-        ErrorResponseDTO body = (ErrorResponseDTO) response.getBody();
-        assertTrue(body.getMessage().contains("Please wait before requesting another verification email"));
+        verify(authService).verifyEmail(TOKEN);
     }
 
     @Test
-    public void resendVerificationEmail_whenValidRequest_resendsEmail() {
-        User user = createUser(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
-        user.setVerificationEmailSentAt(Instant.now().minusSeconds(120));
+    public void verifyEmail_userDoesNotExist_returns404() throws Exception {
+        doThrow(new UserNotFoundException())
+            .when(authService).verifyEmail(TOKEN);
 
-        when(userRepository.findByEmail(EMAIL)).thenReturn(user);
-
-        ResponseEntity<?> response = authController.resendVerificationEmail(Collections.singletonMap("email", EMAIL));
-
-        verify(userRepository).findByEmail(EMAIL);
-        verify(emailService).sendVerificationEmail(user);
-
-        assertEquals(200, response.getStatusCodeValue());
-        assertEquals("Verification email resent", response.getBody());
-    }
-
-    // Tests for password reset
-    @Test
-    public void sendPasswordResetEmail_whenEmailExists_sendsEmail() {
-        User user = createUser(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
-
-        when(userRepository.findByEmail(EMAIL)).thenReturn(user);
-
-        ResponseEntity<?> response = authController.sendPasswordResetEmail(Collections.singletonMap("email", EMAIL));
-
-        verify(userRepository).findByEmail(EMAIL);
-        verify(emailService).sendPasswordResetEmail(user);
-
-        assertEquals(200, response.getStatusCodeValue());
-        assertEquals("Password reset email sent", response.getBody());
+        mockMvc.perform(get("/api/auth/verify")
+            .param("token", TOKEN))
+            .andExpect(status().isNotFound());
     }
 
     @Test
-    public void sendPasswordResetEmail_whenEmailDoesNotExist_returnsNotFound() {
-        when(userRepository.findByEmail(EMAIL)).thenReturn(null);
-
-        ResponseEntity<?> response = authController.sendPasswordResetEmail(Collections.singletonMap("email", EMAIL));
-
-        verify(userRepository).findByEmail(EMAIL);
-
-        assertEquals(404, response.getStatusCodeValue());
-        ErrorResponseDTO body = (ErrorResponseDTO) response.getBody();
-        assertTrue(body.getMessage().contains("User not found"));
+    public void verifyEmail_missingToken_returns400() throws Exception {
+        mockMvc.perform(get("/api/auth/verify"))
+            .andExpect(status().isBadRequest());
     }
 
     @Test
-    public void sendPasswordResetEmail_whenRequestTooSoon_ReturnsTooManyRequests() {
-        User user = createUser(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
-        user.setPasswordResetEmailSentAt(Instant.now());
+    public void verifyEmail_invalidToken_returns401() throws Exception {
+        doThrow(new InvalidTokenException("Invalid or expired token"))
+            .when(authService).verifyEmail(TOKEN);
 
-        when(userRepository.findByEmail(EMAIL)).thenReturn(user);
-
-        ResponseEntity<?> response = authController.sendPasswordResetEmail(Collections.singletonMap("email", EMAIL));
-        verify(userRepository).findByEmail(EMAIL);
-
-        assertEquals(429, response.getStatusCodeValue());
-        ErrorResponseDTO body = (ErrorResponseDTO) response.getBody();
-        assertTrue(body.getMessage().contains("Please wait before requesting another password reset"));
+        mockMvc.perform(get("/api/auth/verify")
+            .param("token", TOKEN))
+            .andExpect(status().isUnauthorized());
     }
 
     @Test
-    public void resetPassword_whenValidRequest_resetsPassword() {
-        final String TOKEN = "valid-token";
-        when(emailService.extractUserIdFromToken(TOKEN)).thenReturn(USER_ID);
+    public void resendVerificationEmail_validRequest_returnsOk() throws Exception {
+        String json = createEmailRequestJson(EMAIL);
 
-        User user = createUser(EMAIL, PASSWORD, FIRST_NAME, LAST_NAME);
-        user.setId(USER_ID);
+        mockMvc.perform(post("/api/auth/resend-verification")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json))
+            .andExpect(status().isOk())
+            .andExpect(content().string("Verification email resent"));
 
-        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
-
-        PasswordResetDTO request = new PasswordResetDTO();
-        request.setToken(TOKEN);
-        request.setNewPassword("NewValidPassword123!");
-
-        when(passwordEncoder.encode("NewValidPassword123!"))
-            .thenReturn("NewValidPassword123!");
-
-        ResponseEntity<?> response = authController.resetPassword(request);
-
-        verify(emailService).extractUserIdFromToken(TOKEN);
-        verify(userRepository).findById(USER_ID);
-        verify(userRepository).save(user);
-
-        assertEquals(200, response.getStatusCodeValue());
-        assertEquals("Password changed successfully", response.getBody());
-        assertEquals("NewValidPassword123!", user.getPassword());
+        verify(authService).resendVerificationEmail(any());
     }
 
     @Test
-    public void resetPassword_whenUserDoesNotExist_returnsNotFound() {
-        final String TOKEN = "valid-token";
-        when(emailService.extractUserIdFromToken(TOKEN)).thenReturn(USER_ID);
+    public void resendVerificationEmail_missingEmail_returns400() throws Exception {
+        doThrow(new IllegalArgumentException("Email must be provided"))
+            .when(authService).resendVerificationEmail(any());
 
-        when(userRepository.findById(USER_ID)).thenReturn(Optional.empty());
+        String json = createEmailRequestJson("");
 
-        PasswordResetDTO request = new PasswordResetDTO();
-        request.setToken(TOKEN);
-        request.setNewPassword(PASSWORD);
-
-        ResponseEntity<?> response = authController.resetPassword(request);
-
-        verify(emailService).extractUserIdFromToken(TOKEN);
-        verify(userRepository).findById(USER_ID);
-
-        assertEquals(404, response.getStatusCodeValue());
-        ErrorResponseDTO body = (ErrorResponseDTO) response.getBody();
-        assertTrue(body.getMessage().contains("User not found"));
+        mockMvc.perform(post("/api/auth/resend-verification")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json))
+            .andExpect(status().isBadRequest());
     }
 
     @Test
-    public void resetPassword_whenTokenIsExpired_throwsInvalidTokenException() {
-        String expiredToken = "expired";
-        when(emailService.extractUserIdFromToken(expiredToken))
-            .thenThrow(new InvalidTokenException("Invalid or expired token"));
+    public void resendVerificationEmail_userDoesNotExist_returns404() throws Exception {
+        doThrow(new UserNotFoundException())
+            .when(authService).resendVerificationEmail(any());
 
-        PasswordResetDTO request = new PasswordResetDTO();
-        request.setToken(expiredToken);
-        request.setNewPassword(PASSWORD);
+        String json = createEmailRequestJson(EMAIL);
 
-        assertThrows(
-            InvalidTokenException.class, 
-            () -> authController.resetPassword(request)
-        );
+        mockMvc.perform(post("/api/auth/resend-verification")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void resendVerificationEmail_mailServerError_returns500() throws Exception {
+        doThrow(new EmailSendException())
+            .when(authService).resendVerificationEmail(any());
+
+        String json = createEmailRequestJson(EMAIL);
+
+        mockMvc.perform(post("/api/auth/resend-verification")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json))
+            .andExpect(status().isInternalServerError());
+    }
+
+    @Test
+    public void resendVerificationEmail_alreadyVerified_returns400() throws Exception {
+        doThrow(new IllegalArgumentException("Email already verified - please log in"))
+            .when(authService).resendVerificationEmail(any());
+
+        String json = createEmailRequestJson(EMAIL);
+
+        mockMvc.perform(post("/api/auth/resend-verification")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void resendVerificationEmail_rateLimitExceeded_returns429() throws Exception {
+        doThrow(new TooManyRequestsException("Too many requests"))
+            .when(authService).resendVerificationEmail(any());
+
+        String json = createEmailRequestJson(EMAIL);
+
+        mockMvc.perform(post("/api/auth/resend-verification")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json))
+            .andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    public void sendPasswordResetEmail_validRequest_returnsOk() throws Exception {
+        String json = createEmailRequestJson(EMAIL);
+
+        mockMvc.perform(post("/api/auth/send-reset-email")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json))
+            .andExpect(status().isOk())
+            .andExpect(content().string("Password reset email sent"));
+
+        verify(authService).sendPasswordResetEmail(any());
+    }
+
+    @Test
+    public void sendPasswordResetEmail_missingEmail_returns400() throws Exception {
+        doThrow(new IllegalArgumentException("Email must be provided"))
+            .when(authService).sendPasswordResetEmail(any());
+
+        String json = createEmailRequestJson("");
+
+        mockMvc.perform(post("/api/auth/send-reset-email")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void sendPasswordResetEmail_userDoesNotExist_returns404() throws Exception {
+        doThrow(new UserNotFoundException())
+            .when(authService).sendPasswordResetEmail(any());
+
+        String json = createEmailRequestJson(EMAIL);
+
+        mockMvc.perform(post("/api/auth/send-reset-email")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void sendPasswordResetEmail_rateLimitExceeded_returns429() throws Exception {
+        doThrow(new TooManyRequestsException("Too many requests"))
+            .when(authService).sendPasswordResetEmail(any());
+
+        String json = createEmailRequestJson(EMAIL);
+
+        mockMvc.perform(post("/api/auth/send-reset-email")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json))
+            .andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    public void sendPasswordResetEmail_mailServerError_returns500() throws Exception {
+        doThrow(new EmailSendException())
+            .when(authService).sendPasswordResetEmail(any());
+
+        String json = createEmailRequestJson(EMAIL);
+
+        mockMvc.perform(post("/api/auth/send-reset-email")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json))
+            .andExpect(status().isInternalServerError());
+    }
+
+    @Test
+    public void resetPassword_validRequest_returnsOk() throws Exception {
+        String json = createPasswordResetRequestJson(TOKEN, PASSWORD);
+
+        mockMvc.perform(post("/api/auth/reset-password")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json))
+            .andExpect(status().isOk())
+            .andExpect(content().string("Password changed successfully"));
+
+        verify(authService).resetPassword(any());
+    }
+
+    @Test
+    public void resetPassword_invalidToken_returns401() throws Exception {
+        doThrow(new InvalidTokenException("Invalid or expired token"))
+            .when(authService).resetPassword(any());
+
+        String json = createPasswordResetRequestJson(TOKEN, PASSWORD);
+
+        mockMvc.perform(post("/api/auth/reset-password")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json))
+            .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    public void resetPassword_userDoesNotExist_returns404() throws Exception {
+        doThrow(new UserNotFoundException())
+            .when(authService).resetPassword(any());
+
+        String json = createPasswordResetRequestJson(TOKEN, PASSWORD);
+
+        mockMvc.perform(post("/api/auth/reset-password")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json))
+            .andExpect(status().isNotFound());
     }
 }

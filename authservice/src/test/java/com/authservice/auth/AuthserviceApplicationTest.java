@@ -6,7 +6,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.mail.javamail.JavaMailSender;
 
 @SpringBootTest
-class AuthserviceApplicationTests {
+class AuthserviceApplicationTest {
 
 	@MockBean
 	private JavaMailSender mailSender;

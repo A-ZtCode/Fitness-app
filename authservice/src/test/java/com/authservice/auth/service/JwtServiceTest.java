@@ -7,13 +7,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static com.authservice.auth.TestUtils.EMAIL;
 
-public class JwtServiceTests {
+public class JwtServiceTest {
 
     private JwtService jwtService;
 
     private String TEST_SECRET = "secret-key-used-for-unit-tests-only";
-    private final String TEST_USER = "test@test.com";
 
     @BeforeEach
     public void setUp() {
@@ -31,20 +31,20 @@ public class JwtServiceTests {
 
     @Test
     public void testGenerateToken_NotNull() {
-        String token = jwtService.createUserToken(TEST_USER);
+        String token = jwtService.createUserToken(EMAIL);
         assertNotNull(token);
     }
 
     @Test
     public void testGenerateToken_ValidSubject() {
-        String token = jwtService.createUserToken(TEST_USER);
+        String token = jwtService.createUserToken(EMAIL);
         Claims claims = parseToken(token);
-        assertEquals(TEST_USER, claims.getSubject());
+        assertEquals(EMAIL, claims.getSubject());
     }
 
     @Test
     public void testGenerateToken_SetsExpirationInFuture() {
-        String token = jwtService.createUserToken(TEST_USER);
+        String token = jwtService.createUserToken(EMAIL);
         Claims claims = parseToken(token);
         assertTrue(claims.getExpiration().getTime() > System.currentTimeMillis());
     }
