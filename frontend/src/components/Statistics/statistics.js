@@ -49,7 +49,7 @@ const COLOR_HIGH_CONTRAST = "#FF8C00"; // Dark Orange for high contrast elements
 const NEUTRAL_COLOR_LIGHT = "#E0E0E0"; // Light grey for backgrounds/neutral elements
 const COLOR_DURATION = ACCENT_COLOR_PRIMARY; // Use primary for Duration
 
-// CHART_COLORS - Expanded vibrant palette for 20+ different activities
+// CHART_COLORS - Expanded palette for different activities
 const CHART_COLORS = [
   "#5B53D0", // 1. Deep Purple (brand color)
   "#FF6B9D", // 2. Pink
@@ -81,7 +81,7 @@ const Statistics = ({ currentUser }) => {
     totalTypes: 0,
     exercises: [],
   });
-  const [weeklyData, setWeeklyData] = useState([]); // [{ name:'Mon', Duration: 60 }, ...]
+  const [weeklyData, setWeeklyData] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -90,7 +90,7 @@ const Statistics = ({ currentUser }) => {
     const jwt = localStorage.getItem("jwt");
     const headers = jwt ? { Authorization: `Bearer ${jwt}` } : {};
 
-    // get the start and end date for weekly stats (fetch last 7 days)
+    // Get the start and end date for weekly stats (fetch last 7 days)
     const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(endDate.getDate() - 6);
@@ -108,33 +108,33 @@ const Statistics = ({ currentUser }) => {
                         }
                       }`;
 
-        fetch('http://localhost:4000/graphql', {
-              method: 'POST',
-              headers:{
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${jwt}`,
-                      },
-              body: JSON.stringify({
-                query,
-                variables: {
-                  username: currentUser,
-                  startDate: formattedStart,
-                  endDate: formattedEnd
-                }
-              })
-          })
-        .then(res => res.json()) 
-        .then(result => {const stats = result.data?.analytics?.weeklyStats || [];
+    fetch('http://localhost:4000/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${jwt}`,
+      },
+      body: JSON.stringify({
+        query,
+        variables: {
+          username: currentUser,
+          startDate: formattedStart,
+          endDate: formattedEnd
+        }
+      })
+    })
+      .then(res => res.json())
+      .then(result => {
+        const stats = result.data?.analytics?.weeklyStats || [];
         console.log('Fetched weekly trend stats:', stats);
-        
-        // Derive same frontend state shape
+
         const totalDuration = stats.reduce((sum, item) => sum + item.totalDuration, 0);
         const exercises = stats.map(item => ({
           exerciseType: item.exerciseType,
           totalDuration: item.totalDuration
         }));
 
-  
+
         setWeeklySummary({
           totalDuration,
           totalTypes: exercises.length,
@@ -152,33 +152,33 @@ const Statistics = ({ currentUser }) => {
           }
         }
       `;
-      fetch('http://localhost:4000/graphql', {
-              method: 'POST',
-              headers:{
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${jwt}`,
-                      },
-              body: JSON.stringify({
-                query: query_daily_trend,
-                variables: {
-                  username: currentUser
-                }
-              })
+        fetch('http://localhost:4000/graphql', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${jwt}`,
+          },
+          body: JSON.stringify({
+            query: query_daily_trend,
+            variables: {
+              username: currentUser
+            }
           })
-        .then(res => res.json()) 
-        .then(result => {const stats_trend = result.data?.analytics?.dailyTrend  || [];
+        })
+          .then(res => res.json())
+          .then(result => {
+            const stats_trend = result.data?.analytics?.dailyTrend || [];
 
-        // Ensure the trend array is in the shape the chart expects
-        // const trend = exercises.map((ex, i) => ({ name: ex.exerciseType, Duration: ex.totalDuration }));
-       console.log('Fetched daily trend stats:', stats_trend);
-       const trend = stats_trend.map(item => ({
-          name: item.name,
-          Duration: item.Duration
-         // date: item.date || ""
-        }));
-        setWeeklyData(trend);
+            // const trend = exercises.map((ex, i) => ({ name: ex.exerciseType, Duration: ex.totalDuration }));
+            console.log('Fetched daily trend stats:', stats_trend);
+            const trend = stats_trend.map(item => ({
+              name: item.name,
+              Duration: item.Duration,
+              date: item.date || ""
+            }));
+            setWeeklyData(trend);
+          })
       })
-  })
       .catch((err) => {
         console.error('GraphQL stats fetch failed:', err);
         setWeeklySummary({ totalDuration: 0, totalTypes: 0, exercises: [] });
@@ -229,17 +229,14 @@ const Statistics = ({ currentUser }) => {
       ) : (
         <>
           <div className="stats-header-cards">
-            {/* Card 1: clear text colors for visibility */}
             <div className="stat-card primary-bg">
               <h3>Total Active Time</h3>
               <p>{totalDurationFormatted}</p>
             </div>
-            {/* Card 2: clear text colors for visibility */}
             <div className="stat-card secondary-bg">
               <h3>Total Number of Exercises</h3>
               <p>{totalExerciseTypes}</p>
             </div>
-            {/* Card 3: styling with dark text and primary accent for value */}
             <div className="stat-card accent-bg">
               <h3>Top Exercise</h3>
               <p>
@@ -266,7 +263,12 @@ const Statistics = ({ currentUser }) => {
                   <XAxis
                     dataKey="name"
                     stroke="#555"
-                    style={{ fontSize: '11px' }}
+                    style={{ fontSize: '10px' }}
+                    tick={{ fontSize: 10 }}
+                    interval={0}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
                     tickFormatter={(dayName) => {
                       // Find the date for this day
                       const dataPoint = weeklyData.find(d => d.name === dayName);
@@ -343,7 +345,7 @@ const Statistics = ({ currentUser }) => {
                           strokeWidth: 1
                         }}
                         label={({ cx, cy, midAngle, outerRadius, percent }) => {
-                         
+
                           if (percent < 0.003) return null;
 
                           const RADIAN = Math.PI / 180;
