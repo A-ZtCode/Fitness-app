@@ -123,41 +123,81 @@ const Journal = ({ currentUser }) => {
       setLoading(true);
       setError(null);
       const jwt = localStorage.getItem('jwt');
+
+      const formattedStart = dateRange.start;
+      const formattedEnd = dateRange.end;
       try {
-        const baseUrl = `${API_BASE}/api/activities/range`;
-        const res = await axios.get(baseUrl, {
-          headers: {
-            Authorization: jwt ? `Bearer ${jwt}` : undefined
-          },
-          params: {
-            user: currentUser,
-            start: dateRange.start,
-            end: dateRange.end,
-          },
-        });
+
+
+        const query = `query ActivitiesRange($username: String!, $startDate: String!, $endDate: String!) {
+                          analytics {
+                            activitiesRange(username: $username, startDate: $startDate, endDate: $endDate) {
+                              activityType
+                              comments
+                              date
+                              duration
+                              id
+                              time
+                              username
+                              createdAt
+                            }
+                          }
+                        }`;
+
+        const response = await fetch('http://localhost:4000/graphql', {
+              method: 'POST',
+              headers:{
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${jwt}`,
+                      },
+              body: JSON.stringify({
+                query,
+                variables: {
+                  username: currentUser,
+                  startDate: formattedStart,
+                  endDate: formattedEnd
+                }
+              })
+          });
+
+        if (!response.ok) {
+            // Throw error for bad HTTP status (e.g., 400, 500)
+            throw new Error(`GraphQL query failed with status: ${response.status}`);
+        }
+
+        const result = await response.json(); 
+        
+        // Extract data from the GraphQL response structure
+        const activities = result.data?.analytics?.activitiesRange || [];
+
+        console.log('Fetched activities range:', activities);
 
         if (!alive) return;
 
-        if (Array.isArray(res.data)) {
-          setExercises(res.data);
+        if (Array.isArray(activities)) {
+          setExercises(activities);
 
-          if (dateRangeChanged && res.data.length > 0) {
-            const days = Object.keys(groupByDay(res.data));
+          if (dateRangeChanged && activities.length > 0) {
+            const days = Object.keys(groupByDay(activities));
             setCollapsedDays(new Set(days));
           }
+        } else if (result.errors) {
+            setError(`GraphQL Errors: ${result.errors.map(e => e.message).join('; ')}`);
+            setExercises([]);
         } else {
-          setError("Received an unexpected response from the server.");
-          setExercises([]);
+            setError("Received an unexpected response from the GraphQL server.");
+            setExercises([]);
         }
       } catch (err) {
         if (axios.isCancel(err)) return;
-        if (err.response) {
-          setError(
-            `Error ${err.response.status}: ${err.response.data?.error || "Failed to load activities."}`
-          );
+
+        // Handle network and fetch-specific errors
+        if (err.message && err.message.includes('GraphQL')) {
+            setError(err.message);
         } else if (err.request) {
           setError("No response from the server. Is it running?");
         } else {
+          // Fallback for general errors
           setError(String(err.message || "Failed to load activities."));
         }
         setExercises([]);
@@ -228,21 +268,53 @@ const Journal = ({ currentUser }) => {
   const saveNote = async (activity) => {
     try {
       setSavingNoteId(activity.id);
+
       const activityId = activity.id ?? activity.activity_id ?? activity._id;
       if (!activityId) {
-        alert('This activity has no id to update');
+        alert("This activity has no id to update");
         return;
       }
-      const jwt = localStorage.getItem('jwt');
-      await axios.patch(
-        `${API_BASE}/api/activities/${activityId}`,
-        { comments: draftComment },
-        { headers: { 
-          'Content-Type': 'application/json', 
-          'Authorization': jwt ? `Bearer ${jwt}` : undefined 
-          } 
+
+      const jwt = localStorage.getItem("jwt");
+
+      const query = `
+        query UpdateComment($activityId: String!, $comments: String!) {
+          analytics {
+            updateActivityComment(activityId: $activityId, comments: $comments) {
+              ok
+              message
+            }
+          }
         }
-      );
+      `;
+
+      const response = await fetch("http://localhost:4000/graphql", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": jwt ? `Bearer ${jwt}` : undefined,
+        },
+        body: JSON.stringify({
+          query,
+          variables: {
+            activityId,
+            comments: draftComment,
+          },
+        }),
+      });
+
+      const result = await response.json();
+
+      const res = result?.data?.analytics?.updateActivityComment;
+      console.log("GraphQL update response:", res);
+
+      if (!res?.ok) {
+        console.error("GraphQL update failed:", res);
+        alert("Could not save the note.");
+        return;
+      }
+
+      // Update UI state locally
       setExercises((prev) =>
         prev.map((x) =>
           (x.id ?? x.activity_id ?? x._id) === activityId
@@ -250,15 +322,17 @@ const Journal = ({ currentUser }) => {
             : x
         )
       );
+
       setEditingId(null);
-      setDraftComment('');
+      setDraftComment("");
     } catch (err) {
-      console.error('Save note failed:', err.response?.status, err.response?.data);
-      alert('Could not save the note.');
+      console.error("Save note (GraphQL) failed:", err);
+      alert("Could not save the note.");
     } finally {
       setSavingNoteId(null);
     }
   };
+
 
   const toggleDay = (dayKey) => {
     setCollapsedDays(prev => {
