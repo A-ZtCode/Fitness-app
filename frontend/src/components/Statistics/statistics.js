@@ -289,6 +289,19 @@ const Statistics = ({ currentUser }) => {
                   />
 
                   <Tooltip
+                    contentStyle={{
+                      backgroundColor: themeColors["bg-elevated"],
+                      border: `1px solid ${themeColors["border-light"]}`,
+                      borderRadius: "8px",
+                    }}
+                    labelStyle={{
+                      color: themeColors["text-primary"],
+                      fontWeight: "bold",
+                      marginBottom: "4px",
+                    }}
+                    itemStyle={{
+                      color: themeColors["text-secondary"],
+                    }}
                     formatter={(value, name) => {
                       if (name === "Active Time" && typeof value === "number") {
                         return toHoursAndMinutes(value);
