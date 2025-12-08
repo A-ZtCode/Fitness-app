@@ -20,7 +20,7 @@ it('renders signup form', () => {
     expect(screen.getByLabelText(/Last Name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^Password/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Confirm Password/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Signup/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Sign Up/i })).toBeInTheDocument();
 });
 
 it('shows "submitted" UI on successful signup', async () => {
@@ -33,7 +33,7 @@ it('shows "submitted" UI on successful signup', async () => {
     fireEvent.change(screen.getByLabelText(/Last Name/i), { target: { value: 'Doe' } });
     fireEvent.change(screen.getByLabelText(/^Password/i), { target: { value: 'password' } });
     fireEvent.change(screen.getByLabelText(/Confirm Password/i), { target: { value: 'password' } });
-    fireEvent.click(screen.getByRole('button', { name: /Signup/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Sign Up/i }));
 
     await waitFor(() => { 
         expect(screen.getByText(/Thanks for signing up!/i)).toBeInTheDocument();
@@ -57,13 +57,13 @@ it('shows error message on password mismatch', async () => {
     fireEvent.change(screen.getByLabelText(/Last Name/i), { target: { value: 'Doe' } });
     fireEvent.change(screen.getByLabelText(/^Password/i), { target: { value: 'password' } });
     fireEvent.change(screen.getByLabelText(/Confirm Password/i), { target: { value: 'differentPassword' } });
-    fireEvent.click(screen.getByRole('button', { name: /Signup/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Sign Up/i }));
 
     await waitFor(() => expect(screen.getByText(/Passwords do not match/i)).toBeInTheDocument());
 });
 
 it('does not submit when form fields are empty', async () => {
-    fireEvent.click(screen.getByRole('button', { name: /Signup/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Sign Up/i }));
 
     expect(screen.queryByText(/Thanks for signing up!/i)).not.toBeInTheDocument();
 });
@@ -80,7 +80,7 @@ it('shows error message when email already registered', async () => {
     fireEvent.change(screen.getByLabelText(/Last Name/i), { target: { value: 'Doe' } });
     fireEvent.change(screen.getByLabelText(/^Password/i), { target: { value: 'password' } });
     fireEvent.change(screen.getByLabelText(/Confirm Password/i), { target: { value: 'password' } });
-    fireEvent.click(screen.getByRole('button', { name: /Signup/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Sign Up/i }));
 
     expect(screen.queryByText(/Thanks for signing up!/i)).not.toBeInTheDocument();
     await waitFor(() => expect(screen.getByText(/Email already registered - please log in/i)).toBeInTheDocument());
@@ -92,7 +92,7 @@ it('does not submit when one of the fields is empty', async () => {
     fireEvent.change(screen.getByLabelText(/Last Name/i), { target: { value: 'Doe' } });
     fireEvent.change(screen.getByLabelText(/^Password/i), { target: { value: 'password' } });
     fireEvent.change(screen.getByLabelText(/Confirm Password/i), { target: { value: 'password' } });
-    fireEvent.click(screen.getByRole('button', { name: /Signup/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Sign Up/i }));
 
     expect(screen.queryByText(/Thanks for signing up!/i)).not.toBeInTheDocument();
 });

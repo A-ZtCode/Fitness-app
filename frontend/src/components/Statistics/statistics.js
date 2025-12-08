@@ -13,6 +13,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { useTheme, themes } from "../../contexts/ThemeContext.js";
 
 // Utility function to convert total minutes to hours and minutes
 const toHoursAndMinutes = (totalMinutes) => {
@@ -44,12 +45,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 // Define a simple, clean, monochromatic blue/purple palette
 const ACCENT_COLOR_PRIMARY = "#5B53D0"; // Deep Blue/Violet for main elements
-const ACCENT_COLOR_SECONDARY = "#ff0073"; // Vibrant Pink for highlights
-const COLOR_HIGH_CONTRAST = "#FF8C00"; // Dark Orange for high contrast elements
-const NEUTRAL_COLOR_LIGHT = "#E0E0E0"; // Light grey for backgrounds/neutral elements
-const COLOR_DURATION = ACCENT_COLOR_PRIMARY; // Use primary for Duration
-
-// CHART_COLORS - Expanded palette for different activities
+// CHART_COLORS - Expanded vibrant palette for 20+ different activities
 const CHART_COLORS = [
   "#5B53D0", // 1. Deep Purple (brand color)
   "#FF6B9D", // 2. Pink
@@ -76,6 +72,10 @@ const CHART_COLORS = [
 ];
 
 const Statistics = ({ currentUser }) => {
+  const { currentTheme } = useTheme();
+  const themeColors = themes[currentTheme]?.colors || themes.light.colors;
+  const primaryColor = themeColors["color-primary"];
+
   const [weeklySummary, setWeeklySummary] = useState({
     totalDuration: 0,
     totalTypes: 0,
@@ -95,9 +95,9 @@ const Statistics = ({ currentUser }) => {
     const startDate = new Date();
     startDate.setDate(endDate.getDate() - 6);
 
-    const formattedStart = startDate.toISOString().split('T')[0];
-    const formattedEnd = endDate.toISOString().split('T')[0];
-    console.log('Fetching stats for:', formattedStart, 'to', formattedEnd);
+    const formattedStart = startDate.toISOString().split("T")[0];
+    const formattedEnd = endDate.toISOString().split("T")[0];
+    console.log("Fetching stats for:", formattedStart, "to", formattedEnd);
 
     const query = `query WeeklyStats($username: String!, $startDate: String!, $endDate: String!) {
                         analytics {
@@ -108,37 +108,40 @@ const Statistics = ({ currentUser }) => {
                         }
                       }`;
 
-    fetch('http://localhost:4000/graphql', {
-      method: 'POST',
+    fetch("http://localhost:4000/graphql", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${jwt}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${jwt}`,
       },
       body: JSON.stringify({
         query,
         variables: {
           username: currentUser,
           startDate: formattedStart,
-          endDate: formattedEnd
-        }
-      })
+          endDate: formattedEnd,
+        },
+      }),
     })
-      .then(res => res.json())
-      .then(result => {
+      .then((res) => res.json())
+      .then((result) => {
         const stats = result.data?.analytics?.weeklyStats || [];
-        console.log('Fetched weekly trend stats:', stats);
+        console.log("Fetched weekly trend stats:", stats);
 
-        const totalDuration = stats.reduce((sum, item) => sum + item.totalDuration, 0);
-        const exercises = stats.map(item => ({
+        // Derive same frontend state shape
+        const totalDuration = stats.reduce(
+          (sum, item) => sum + item.totalDuration,
+          0
+        );
+        const exercises = stats.map((item) => ({
           exerciseType: item.exerciseType,
-          totalDuration: item.totalDuration
+          totalDuration: item.totalDuration,
         }));
-
 
         setWeeklySummary({
           totalDuration,
           totalTypes: exercises.length,
-          exercises
+          exercises,
         });
 
         const query_daily_trend = `
@@ -152,35 +155,35 @@ const Statistics = ({ currentUser }) => {
           }
         }
       `;
-        fetch('http://localhost:4000/graphql', {
-          method: 'POST',
+        fetch("http://localhost:4000/graphql", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${jwt}`,
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${jwt}`,
           },
           body: JSON.stringify({
             query: query_daily_trend,
             variables: {
-              username: currentUser
-            }
-          })
+              username: currentUser,
+            },
+          }),
         })
-          .then(res => res.json())
-          .then(result => {
+          .then((res) => res.json())
+          .then((result) => {
             const stats_trend = result.data?.analytics?.dailyTrend || [];
 
             // const trend = exercises.map((ex, i) => ({ name: ex.exerciseType, Duration: ex.totalDuration }));
-            console.log('Fetched daily trend stats:', stats_trend);
-            const trend = stats_trend.map(item => ({
+            console.log("Fetched daily trend stats:", stats_trend);
+            const trend = stats_trend.map((item) => ({
               name: item.name,
               Duration: item.Duration,
-              date: item.date || ""
+              date: item.date || "",
             }));
             setWeeklyData(trend);
-          })
+          });
       })
       .catch((err) => {
-        console.error('GraphQL stats fetch failed:', err);
+        console.error("GraphQL stats fetch failed:", err);
         setWeeklySummary({ totalDuration: 0, totalTypes: 0, exercises: [] });
         setWeeklyData([]);
       })
@@ -209,8 +212,8 @@ const Statistics = ({ currentUser }) => {
   const topExercise =
     distributionData.length > 0
       ? distributionData.reduce((prev, current) =>
-        prev.value > current.value ? prev : current
-      )
+          prev.value > current.value ? prev : current
+        )
       : { name: "N/A", value: 0 };
 
   const topExerciseDurationFormatted = toHoursAndMinutes(topExercise.value);
@@ -223,7 +226,7 @@ const Statistics = ({ currentUser }) => {
       <h2>Your Fitness Dashboard, {firstName}! 🚀</h2>
 
       {exerciseData.length === 0 ? (
-        <p className="no-data-message">
+        <p className="no-data-message" style={{ color: "var(--text-primary)" }}>
           No exercise data available to display statistics.
         </p>
       ) : (
@@ -258,23 +261,21 @@ const Statistics = ({ currentUser }) => {
                 <LineChart data={weeklyData}>
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    stroke={NEUTRAL_COLOR_LIGHT}
+                    stroke={themeColors["border-medium"]}
                   />
                   <XAxis
                     dataKey="name"
-                    stroke="#555"
-                    style={{ fontSize: '10px' }}
-                    tick={{ fontSize: 10 }}
-                    interval={0}
-                    angle={-45}
-                    textAnchor="end"
-                    height={60}
+                    stroke={themeColors["text-secondary"]}
+                    tick={{ fill: themeColors["text-secondary"] }}
+                    style={{ fontSize: "11px" }}
                     tickFormatter={(dayName) => {
                       // Find the date for this day
-                      const dataPoint = weeklyData.find(d => d.name === dayName);
+                      const dataPoint = weeklyData.find(
+                        (d) => d.name === dayName
+                      );
                       if (dataPoint && dataPoint.date) {
                         // Convert "2025-11-17" to "17/11"
-                        const dateParts = dataPoint.date.split('-');
+                        const dateParts = dataPoint.date.split("-");
                         const day = dateParts[2];
                         const month = dateParts[1];
                         return `${dayName}\n${day}/${month}`;
@@ -282,7 +283,10 @@ const Statistics = ({ currentUser }) => {
                       return dayName;
                     }}
                   />
-                  <YAxis stroke="#555" />
+                  <YAxis
+                    stroke={themeColors["text-secondary"]}
+                    tick={{ fill: themeColors["text-secondary"] }}
+                  />
 
                   <Tooltip
                     formatter={(value, name) => {
@@ -293,15 +297,17 @@ const Statistics = ({ currentUser }) => {
                     }}
                     labelFormatter={(label) => {
                       // Find the corresponding date from weeklyData
-                      const dataPoint = weeklyData.find(d => d.name === label);
+                      const dataPoint = weeklyData.find(
+                        (d) => d.name === label
+                      );
                       if (dataPoint && dataPoint.date) {
                         // Convert "2025-11-17" to "Monday, Nov 17, 2025"
-                        const dateObj = new Date(dataPoint.date + 'T00:00:00');
-                        return dateObj.toLocaleDateString('en-US', {
-                          weekday: 'long',
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric'
+                        const dateObj = new Date(dataPoint.date + "T00:00:00");
+                        return dateObj.toLocaleDateString("en-US", {
+                          weekday: "long",
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
                         });
                       }
                       return label;
@@ -315,10 +321,10 @@ const Statistics = ({ currentUser }) => {
                     type="monotone"
                     dataKey="Duration"
                     name="Active Time"
-                    stroke={COLOR_DURATION}
+                    stroke={primaryColor}
                     strokeWidth={3}
-                    dot={{ r: 3 }}
-                    activeDot={{ r: 5 }}
+                    dot={{ r: 3, fill: primaryColor }}
+                    activeDot={{ r: 5, fill: primaryColor }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -330,26 +336,25 @@ const Statistics = ({ currentUser }) => {
               <div className="donut-chart-container">
                 <div className="donut-chart-wrapper">
                   <ResponsiveContainer width="100%" height={280}>
-                    <PieChart>
+                    <PieChart margin={{ left: 30, right: 30 }}>
                       <Pie
                         data={distributionData}
                         dataKey="value"
                         nameKey="name"
                         cx="50%"
                         cy="50%"
-                        innerRadius="40%"
-                        outerRadius="70%"
+                        innerRadius="35%"
+                        outerRadius="60%"
                         fill={ACCENT_COLOR_PRIMARY}
                         labelLine={{
-                          stroke: '#8884d8',
-                          strokeWidth: 1
+                          stroke: themeColors["text-muted"],
+                          strokeWidth: 1,
                         }}
                         label={({ cx, cy, midAngle, outerRadius, percent }) => {
-
                           if (percent < 0.003) return null;
 
                           const RADIAN = Math.PI / 180;
-                          const radius = outerRadius + 30;
+                          const radius = outerRadius + 20;
                           const x = cx + radius * Math.cos(-midAngle * RADIAN);
                           const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
@@ -357,12 +362,12 @@ const Statistics = ({ currentUser }) => {
                             <text
                               x={x}
                               y={y}
-                              fill="#333"
-                              textAnchor={x > cx ? 'start' : 'end'}
+                              fill={themeColors["text-primary"]}
+                              textAnchor={x > cx ? "start" : "end"}
                               dominantBaseline="central"
                               style={{
-                                fontSize: '14px',
-                                fontWeight: 'bold'
+                                fontSize: "13px",
+                                fontWeight: "bold",
                               }}
                             >
                               {`${(percent * 100).toFixed(0)}%`}
@@ -390,10 +395,15 @@ const Statistics = ({ currentUser }) => {
                     <div key={`item-${index}`} className="donut-legend-item">
                       <div
                         className="donut-legend-color-box"
-                        style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
+                        style={{
+                          backgroundColor:
+                            CHART_COLORS[index % CHART_COLORS.length],
+                        }}
                       />
                       <span className="donut-legend-name">{entry.name}</span>
-                      <span className="donut-legend-value">{toHoursAndMinutes(entry.value)}</span>
+                      <span className="donut-legend-value">
+                        {toHoursAndMinutes(entry.value)}
+                      </span>
                     </div>
                   ))}
                 </div>

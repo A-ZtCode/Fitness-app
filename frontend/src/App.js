@@ -20,6 +20,8 @@ import Verify from "./components/Verify/verify.js";
 import logo from "./img/CFG_logo.png";
 import { ChatbotProvider } from "./contexts/chatbotContext.js";
 import ChatbotOverlay from "./components/ChatBot/ChatbotOverlay.js";
+import { ThemeProvider } from "./contexts/ThemeContext.js";
+import { MuiThemeWrapper } from "./contexts/MuiThemeProvider.js";
 import ForgotPassword from "./components/ForgottenPassword/forgottenPassword.js";
 import ResetPassword from "./components/ResetPassword/resetPassword.js";
 
@@ -38,137 +40,157 @@ function App() {
   };
 
   return (
-    <ChatbotProvider>
-      <div className="App">
-        <Router>
-          <header className="appHeader">
-            <div className="appHeader-left">
-              <img src={logo} alt="CFG Fitness App Logo" id="appLogo" />
-              <div className="appTitle">
-                <h1>MLA Fitness App</h1>
-              </div>
-            </div>
-            {isLoggedIn && (
-              <div className="appHeader-right">
-                <NavbarComponent onLogout={handleLogout} />
-              </div>
-            )}
-          </header>
+    <ThemeProvider>
+      <MuiThemeWrapper>
+        <ChatbotProvider>
+          <div className="App">
+            <Router>
+              <header className="appHeader">
+                <div className="appHeader-left">
+                  <img src={logo} alt="CFG Fitness App Logo" id="appLogo" />
+                  <div className="appTitle">
+                    <h1>MLA Fitness App</h1>
+                  </div>
+                </div>
+                {isLoggedIn && (
+                  <div className="appHeader-right">
+                    <NavbarComponent onLogout={handleLogout} />
+                  </div>
+                )}
+              </header>
 
-          {!isLoggedIn && (
-            <section className="hero">
-              <div className="hero-content">
-                <h2>Track. Improve. Stay Consistent.</h2>
-                <p>
-                  Log workouts in seconds and watch your progress grow with
-                  clear, motivating insights.
-                </p>
-              </div>
-              <div className="hero-visual" aria-hidden="true">
-                <svg
-                  viewBox="0 0 300 140"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="hero-svg"
-                >
-                  <defs>
-                    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="rgba(123,147,255,0.35)" />
-                      <stop offset="100%" stopColor="rgba(64,91,255,0.35)" />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d="M10 110 Q 40 20, 80 70 T 150 60 T 220 40 T 290 50"
-                    stroke="url(#grad)"
-                    strokeWidth="8"
-                    fill="none"
-                    strokeLinecap="round"
+              {!isLoggedIn && (
+                <section className="hero">
+                  <div className="hero-content">
+                    <h2>Track. Improve. Stay Consistent.</h2>
+                    <p>
+                      Log workouts in seconds and watch your progress grow with
+                      clear, motivating insights.
+                    </p>
+                  </div>
+                  <div className="hero-visual" aria-hidden="true">
+                    <svg
+                      viewBox="0 0 300 140"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="hero-svg"
+                    >
+                      <path
+                        d="M10 110 Q 40 20, 80 70 T 150 60 T 220 40 T 290 50"
+                        stroke="var(--color-primary)"
+                        strokeWidth="8"
+                        fill="none"
+                        strokeLinecap="round"
+                        opacity="0.5"
+                      />
+                      <circle
+                        cx="80"
+                        cy="70"
+                        r="6"
+                        fill="var(--color-primary)"
+                      />
+                      <circle
+                        cx="150"
+                        cy="60"
+                        r="6"
+                        fill="var(--color-primary)"
+                      />
+                      <circle
+                        cx="220"
+                        cy="40"
+                        r="6"
+                        fill="var(--color-primary)"
+                      />
+                    </svg>
+                  </div>
+                </section>
+              )}
+
+              <div className="componentContainer">
+                <Routes>
+                  <Route
+                    path="/login"
+                    element={
+                      isLoggedIn ? (
+                        <Navigate to="/" />
+                      ) : (
+                        <Login onLogin={handleLogin} />
+                      )
+                    }
                   />
-                  <circle cx="80" cy="70" r="6" fill="#7b93ff" />
-                  <circle cx="150" cy="60" r="6" fill="#7b93ff" />
-                  <circle cx="220" cy="40" r="6" fill="#7b93ff" />
-                </svg>
+                  <Route
+                    path="/signup"
+                    element={isLoggedIn ? <Navigate to="/" /> : <Signup />}
+                  />
+                  <Route
+                    path="/trackExercise"
+                    element={
+                      isLoggedIn ? (
+                        <TrackExercise currentUser={currentUser} />
+                      ) : (
+                        <Navigate to="/login" />
+                      )
+                    }
+                  />
+                  <Route
+                    path="/statistics"
+                    element={
+                      isLoggedIn ? (
+                        <Statistics currentUser={currentUser} />
+                      ) : (
+                        <Navigate to="/login" />
+                      )
+                    }
+                  />
+                  <Route
+                    path="/journal"
+                    element={
+                      isLoggedIn ? (
+                        <Journal currentUser={currentUser} />
+                      ) : (
+                        <Navigate to="/login" />
+                      )
+                    }
+                  />
+                  <Route
+                    path="/settings"
+                    element={
+                      isLoggedIn ? (
+                        <Settings
+                          userEmail={currentUser}
+                          onLogout={handleLogout}
+                        />
+                      ) : (
+                        <Navigate to="/login" />
+                      )
+                    }
+                  />
+                  <Route path="/verify" element={<Verify />} />
+                  <Route
+                    path="/forgotten-password"
+                    element={<ForgotPassword />}
+                  />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route
+                    path="/"
+                    element={
+                      isLoggedIn ? (
+                        <Navigate to="/statistics" />
+                      ) : (
+                        <Navigate to="/login" />
+                      )
+                    }
+                  />
+                </Routes>
               </div>
-            </section>
-          )}
 
-          <div className="componentContainer">
-            <Routes>
-              <Route
-                path="/login"
-                element={
-                  isLoggedIn ? (
-                    <Navigate to="/" />
-                  ) : (
-                    <Login onLogin={handleLogin} />
-                  )
-                }
-              />
-              <Route
-                path="/signup"
-                element={isLoggedIn ? <Navigate to="/" /> : <Signup />}
-              />
-              <Route
-                path="/trackExercise"
-                element={
-                  isLoggedIn ? (
-                    <TrackExercise currentUser={currentUser} />
-                  ) : (
-                    <Navigate to="/login" />
-                  )
-                }
-              />
-              <Route
-                path="/statistics"
-                element={
-                  isLoggedIn ? (
-                    <Statistics currentUser={currentUser} />
-                  ) : (
-                    <Navigate to="/login" />
-                  )
-                }
-              />
-              <Route
-                path="/journal"
-                element={
-                  isLoggedIn ? (
-                    <Journal currentUser={currentUser} />
-                  ) : (
-                    <Navigate to="/login" />
-                  )
-                }
-              />
-              <Route
-                path="/settings"
-                element={
-                  isLoggedIn ? (
-                    <Settings userEmail={currentUser} onLogout={handleLogout} />
-                  ) : (
-                    <Navigate to="/login" />
-                  )
-                }
-              />
-              <Route path="/verify" element={<Verify />} />
-              <Route
-                path="/"
-                element={
-                  isLoggedIn ? (
-                    <Navigate to="/trackExercise" />
-                  ) : (
-                    <Navigate to="/login" />
-                  )
-                }
-              />
-              <Route path="/forgotten-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-            </Routes>
+              {isLoggedIn && <ChatbotOverlay currentUser={currentUser} />}
+
+              <Footer />
+            </Router>
           </div>
-
-          {isLoggedIn && <ChatbotOverlay currentUser={currentUser} />}
-
-          <Footer />
-        </Router>
-      </div>
-    </ChatbotProvider>
+        </ChatbotProvider>
+      </MuiThemeWrapper>
+    </ThemeProvider>
   );
 }
 

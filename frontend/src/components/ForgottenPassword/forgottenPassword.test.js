@@ -20,7 +20,7 @@ describe("ForgotPassword Component", () => {
   test("renders forgot password form", () => {
     render(<MockedForgotPassword />);
 
-    expect(screen.getByText("Forgotten Password")).toBeInTheDocument();
+    expect(screen.getByText("Forgot Password")).toBeInTheDocument();
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /send reset link/i })
@@ -83,7 +83,7 @@ describe("ForgotPassword Component", () => {
     expect(submitButton).toBeDisabled();
   });
 
-  test("clears email field after successful submission", async () => {
+  test("disables email field after successful submission", async () => {
     axios.post.mockResolvedValueOnce({ status: 200 });
 
     render(<MockedForgotPassword />);
@@ -94,14 +94,14 @@ describe("ForgotPassword Component", () => {
     fireEvent.click(screen.getByRole("button", { name: /send reset link/i }));
 
     await waitFor(() => {
-      expect(emailInput.value).toBe("");
+      expect(emailInput).toBeDisabled();
     });
   });
 
-  test('navigates to login page when "Back to Login" is clicked', () => {
+  test('navigates to login page when "Login" link is clicked', () => {
     render(<MockedForgotPassword />);
 
-    const loginLink = screen.getByRole("link", { name: /back to login/i });
+    const loginLink = screen.getByRole("link", { name: /login/i });
     expect(loginLink).toHaveAttribute("href", "/login");
   });
 });

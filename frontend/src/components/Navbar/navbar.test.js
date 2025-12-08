@@ -43,7 +43,7 @@ describe("NavbarComponent - Settings Tab", () => {
     expect(mockNavigate).toHaveBeenCalledWith("/settings");
   });
 
-  it("applies active class when on /settings route", () => {
+  it("applies active styling when on /settings route", () => {
     mockUseLocation.mockReturnValue({ pathname: "/settings" });
 
     render(
@@ -53,6 +53,8 @@ describe("NavbarComponent - Settings Tab", () => {
     );
 
     const settingsLink = screen.getByText(/Settings/i);
-    expect(settingsLink).toHaveClass("active");
+    expect(settingsLink).toBeInTheDocument();
+    // Active styling is applied via CSS-in-JS (sx prop) based on pathname match
+    expect(settingsLink).toHaveStyle({ color: "var(--color-primary)" });
   });
 });

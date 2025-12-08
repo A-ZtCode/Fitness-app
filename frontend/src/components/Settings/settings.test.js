@@ -8,6 +8,7 @@ import {
 import axios from "axios";
 import { MemoryRouter } from "react-router-dom";
 import Settings from "./settings.js";
+import { ThemeProvider } from "../../contexts/ThemeContext";
 
 jest.mock("axios");
 const mockNavigate = jest.fn();
@@ -15,6 +16,12 @@ jest.mock("react-router-dom", () => ({
   ...jest.requireActual("react-router-dom"),
   useNavigate: () => mockNavigate,
 }));
+
+const AllProviders = ({ children }) => (
+  <MemoryRouter>
+    <ThemeProvider>{children}</ThemeProvider>
+  </MemoryRouter>
+);
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -32,12 +39,13 @@ describe("Settings Component", () => {
     });
 
     render(<Settings userEmail="test@example.com" />, {
-      wrapper: MemoryRouter,
+      wrapper: AllProviders,
     });
 
     expect(await screen.findByDisplayValue("Jane")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Doe")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("test@example.com")).toBeInTheDocument();
+    // Email is displayed as text, not as an input
+    expect(screen.getByText("test@example.com")).toBeInTheDocument();
   });
 
   it("toggles edit mode when clicking edit button", async () => {
@@ -51,7 +59,7 @@ describe("Settings Component", () => {
     });
 
     render(<Settings userEmail="test@example.com" />, {
-      wrapper: MemoryRouter,
+      wrapper: AllProviders,
     });
 
     const editBtn = await screen.findByRole("button", { name: /edit/i });
@@ -74,7 +82,7 @@ describe("Settings Component", () => {
     });
 
     render(<Settings userEmail="test@example.com" />, {
-      wrapper: MemoryRouter,
+      wrapper: AllProviders,
     });
 
     await screen.findByDisplayValue("Jane");
@@ -112,7 +120,7 @@ describe("Settings Component", () => {
     });
 
     render(<Settings userEmail="test@example.com" />, {
-      wrapper: MemoryRouter,
+      wrapper: AllProviders,
     });
 
     await screen.findByDisplayValue("Jane");
@@ -138,7 +146,7 @@ describe("Settings Component", () => {
       },
     });
     render(<Settings userEmail="test@test.com" />, {
-      wrapper: MemoryRouter,
+      wrapper: AllProviders,
     });
     await screen.findByDisplayValue("Jane");
     const signOutButton = screen.getByRole("button", { name: /Sign Out/i });
@@ -147,7 +155,10 @@ describe("Settings Component", () => {
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith("/login");
     });
-    expect(localStorage.length).toBe(0);
+    // User-related localStorage items are cleared; theme setting may persist
+    expect(localStorage.getItem("user")).toBeNull();
+    expect(localStorage.getItem("userId")).toBeNull();
+    expect(localStorage.getItem("userEmail")).toBeNull();
     jest.useRealTimers();
   });
 
@@ -162,7 +173,7 @@ describe("Settings Component", () => {
     });
 
     render(<Settings userEmail="test@example.com" />, {
-      wrapper: MemoryRouter,
+      wrapper: AllProviders,
     });
     await screen.findByDisplayValue("Jane");
     fireEvent.click(screen.getByText(/edit/i));
@@ -183,7 +194,7 @@ describe("Settings Component", () => {
     });
 
     render(<Settings userEmail="test@example.com" />, {
-      wrapper: MemoryRouter,
+      wrapper: AllProviders,
     });
 
     await screen.findByDisplayValue("Jane");

@@ -1,0 +1,11 @@
+.theme-option {
+  transition: all 0.3s ease;
+}
+
+.theme-option.selected {
+  box-shadow: 0 4px 12px rgba(90, 117, 224, 0.2);
+}
+
+.theme-preview {
+  margin-top: 8px;
+}
