@@ -23,7 +23,7 @@ const toHoursAndMinutes = (totalMinutes) => {
 };
 
 // Custom Tooltip Component for Donut Chart
-const CustomTooltip = ({ active, payload, label }) => {
+const CustomTooltip = ({ active, payload, label, themeColors }) => {
   if (active && payload && payload.length) {
     const dataEntry = payload[0];
     const durationInMin = dataEntry.value;
@@ -32,8 +32,23 @@ const CustomTooltip = ({ active, payload, label }) => {
     const color = dataEntry.color;
 
     return (
-      <div className="custom-tooltip">
-        <p className="label" style={{ color: color, fontWeight: "bold" }}>
+      <div 
+        className="custom-tooltip"
+        style={{
+          backgroundColor: themeColors?.["bg-elevated"] || "#fff",
+          border: `1px solid ${themeColors?.["border-light"] || "#ddd"}`,
+          padding: "8px 12px",
+          borderRadius: "8px"
+        }}
+      >
+        <p 
+          className="label" 
+          style={{ 
+            color: themeColors?.["text-primary"] || "#333", 
+            fontWeight: "bold",
+            margin: 0
+          }}
+        >
           {exerciseName}: {durationFormatted}
         </p>
       </div>
@@ -212,8 +227,8 @@ const Statistics = ({ currentUser }) => {
   const topExercise =
     distributionData.length > 0
       ? distributionData.reduce((prev, current) =>
-          prev.value > current.value ? prev : current
-        )
+        prev.value > current.value ? prev : current
+      )
       : { name: "N/A", value: 0 };
 
   const topExerciseDurationFormatted = toHoursAndMinutes(topExercise.value);
@@ -266,13 +281,14 @@ const Statistics = ({ currentUser }) => {
                   <XAxis
                     dataKey="name"
                     stroke={themeColors["text-secondary"]}
-                    tick={{ fill: themeColors["text-secondary"] }}
-                    style={{ fontSize: "11px" }}
+                    tick={{ fill: themeColors["text-secondary"], fontSize: 10 }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={70}
+                    interval={0}
                     tickFormatter={(dayName) => {
                       // Find the date for this day
-                      const dataPoint = weeklyData.find(
-                        (d) => d.name === dayName
-                      );
+                      const dataPoint = weeklyData.find((d) => d.name === dayName);
                       if (dataPoint && dataPoint.date) {
                         // Convert "2025-11-17" to "17/11"
                         const dateParts = dataPoint.date.split("-");
@@ -396,7 +412,7 @@ const Statistics = ({ currentUser }) => {
                         ))}
                       </Pie>
                       <Tooltip
-                        content={<CustomTooltip />}
+                        content={<CustomTooltip themeColors={themeColors} />}
                         cursor={{ fill: "transparent" }}
                       />
                     </PieChart>

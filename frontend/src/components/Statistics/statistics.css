@@ -33,6 +33,7 @@
   text-align: center;
   transition: transform 0.3s ease;
   background-color: var(--bg-elevated);
+  border: 1px solid var(--border-light);
 }
 
 .stat-card:hover {
