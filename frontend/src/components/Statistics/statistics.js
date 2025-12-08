@@ -81,7 +81,7 @@ const Statistics = ({ currentUser }) => {
     totalTypes: 0,
     exercises: [],
   });
-  const [weeklyData, setWeeklyData] = useState([]); // [{ name:'Mon', Duration: 60 }, ...]
+  const [weeklyData, setWeeklyData] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -90,7 +90,7 @@ const Statistics = ({ currentUser }) => {
     const jwt = localStorage.getItem("jwt");
     const headers = jwt ? { Authorization: `Bearer ${jwt}` } : {};
 
-    // get the start and end date for weekly stats (fetch last 7 days)
+    // Get the start and end date for weekly stats (fetch last 7 days)
     const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(endDate.getDate() - 6);
@@ -172,13 +172,12 @@ const Statistics = ({ currentUser }) => {
           .then((result) => {
             const stats_trend = result.data?.analytics?.dailyTrend || [];
 
-            // Ensure the trend array is in the shape the chart expects
             // const trend = exercises.map((ex, i) => ({ name: ex.exerciseType, Duration: ex.totalDuration }));
             console.log("Fetched daily trend stats:", stats_trend);
             const trend = stats_trend.map((item) => ({
               name: item.name,
               Duration: item.Duration,
-              // date: item.date || ""
+              date: item.date || "",
             }));
             setWeeklyData(trend);
           });
@@ -233,17 +232,14 @@ const Statistics = ({ currentUser }) => {
       ) : (
         <>
           <div className="stats-header-cards">
-            {/* Card 1: clear text colors for visibility */}
             <div className="stat-card primary-bg">
               <h3>Total Active Time</h3>
               <p>{totalDurationFormatted}</p>
             </div>
-            {/* Card 2: clear text colors for visibility */}
             <div className="stat-card secondary-bg">
               <h3>Total Number of Exercises</h3>
               <p>{totalExerciseTypes}</p>
             </div>
-            {/* Card 3: styling with dark text and primary accent for value */}
             <div className="stat-card accent-bg">
               <h3>Top Exercise</h3>
               <p>
@@ -287,7 +283,10 @@ const Statistics = ({ currentUser }) => {
                       return dayName;
                     }}
                   />
-                  <YAxis stroke={themeColors["text-secondary"]} tick={{ fill: themeColors["text-secondary"] }} />
+                  <YAxis
+                    stroke={themeColors["text-secondary"]}
+                    tick={{ fill: themeColors["text-secondary"] }}
+                  />
 
                   <Tooltip
                     formatter={(value, name) => {

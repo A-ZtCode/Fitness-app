@@ -6,7 +6,14 @@ from datetime import datetime, timedelta
 from pymongo import MongoClient
 from dotenv import load_dotenv
 import sys
+import hashlib
 
+def anonymize_username(username):
+    """Anonymize username for logging purposes"""
+    if not username:
+        return "unknown"
+    hash_object = hashlib.md5(username.encode())
+    return f"user_{hash_object.hexdigest()[:8]}"
 # Load environment variables from .env file
 load_dotenv()
 
@@ -50,7 +57,7 @@ except Exception as e:
 conversation_histories = {}
 
 # Model selection
-MODEL = "gpt-4o-mini"  # Recommended: Fast and cost-effective
+MODEL = "gpt-4o-mini"  # Fast and cost-effective
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
@@ -68,15 +75,31 @@ def chat():
             "success": False
         }), 400
     
+    # Detect time period in user's message
+    days_back = 7  # default
+    message_lower = user_message.lower()
+    
+    if '30 day' in message_lower or 'past month' in message_lower or 'last month' in message_lower or 'month' in message_lower:
+        days_back = 30
+    elif '14 day' in message_lower or '2 week' in message_lower or 'two week' in message_lower:
+        days_back = 14
+    elif 'today' in message_lower:
+        days_back = 1
+    elif 'yesterday' in message_lower:
+        days_back = 2
+    # Default to 7 days for "week", "last 7 days", etc.
+    
+    print(f"🔍 Detected time period: {days_back} days")
+    
     # Get or create conversation history
     if username not in conversation_histories:
         conversation_histories[username] = []
     
-    # Fetch user fitness data for context
-    user_context = get_user_fitness_context(username)
+    # Fetch user fitness data for detected period
+    user_context = get_user_activities_for_period(username, days_back)
     
-    # Build system prompt based on current screen and user data
-    system_prompt = build_system_prompt(context, user_context)
+    # Build system prompt with dynamic period
+    system_prompt = build_dynamic_system_prompt(context, user_context, days_back)
     
     # Add user message to history
     conversation_histories[username].append({
@@ -88,7 +111,7 @@ def chat():
         # Prepare messages for OpenAI
         messages = [
             {"role": "system", "content": system_prompt}
-        ] + conversation_histories[username][-10:]  # Keep last 10 messages
+        ] + conversation_histories[username][-10:]
         
         # Call OpenAI API
         response = client.chat.completions.create(
@@ -115,15 +138,13 @@ def chat():
             conversation_histories[username],
             user_ctx
         )
-        
-        # Calculate cost (optional)
         usage = response.usage
         cost_info = calculate_cost(usage, MODEL)
         
         return jsonify({
             "response": assistant_message,
             "success": True,
-            "suggestions": fresh_suggestions,  # Add this line
+            "suggestions": fresh_suggestions,
             "usage": {
                 "prompt_tokens": usage.prompt_tokens,
                 "completion_tokens": usage.completion_tokens,
@@ -143,6 +164,111 @@ def chat():
             "success": False,
             "error": str(e)
         }), 500
+
+def build_dynamic_system_prompt(context, user_context, days_back):
+    """Build context-aware system prompt with dynamic time period"""
+    screen = context.get('screen', 'general')
+    
+    # Get the period name
+    if days_back == 1:
+        period_name = "today"
+    elif days_back == 2:
+        period_name = "last 2 days"
+    elif days_back == 7:
+        period_name = "last 7 days"
+    elif days_back == 14:
+        period_name = "last 14 days"
+    elif days_back == 30:
+        period_name = "last 30 days"
+    else:
+        period_name = f"last {days_back} days"
+    
+    # Format activities - show ALL if ≤10, otherwise show first 5 + summary
+    activities_str = ""
+    total_activities = len(user_context.get('activities', []))
+    
+    if user_context.get('activities'):
+        formatted = []
+        activities_to_show = user_context['activities'][:5] if total_activities > 10 else user_context['activities']
+        
+        for i, a in enumerate(activities_to_show):
+            duration_mins = a['duration']
+            if duration_mins >= 60:
+                hours = duration_mins // 60
+                mins = duration_mins % 60
+                duration_str = f"{hours} hr {mins} min" if mins > 0 else f"{hours} hr"
+            else:
+                duration_str = f"{duration_mins} min"
+            formatted.append(f"{i+1}. {a['type']}: {duration_str} on {a['date']}")
+        
+        activities_str = "\n".join(formatted)
+        
+        # Add summary if there are more activities
+        if total_activities > len(activities_to_show):
+            activities_str += f"\n... and {total_activities - len(activities_to_show)} more activities"
+    else:
+        activities_str = f"No activities in the {period_name}."
+    
+    # Format breakdown
+    breakdown_str = ""
+    if user_context.get('breakdown'):
+        formatted = []
+        for b in user_context['breakdown']:
+            mins = b['duration']
+            hours = mins // 60
+            remaining = mins % 60
+            time_str = f"{hours} hr {remaining} min" if hours > 0 else f"{mins} min"
+            formatted.append(f"- {b['type']}: {time_str} ({b['count']} sessions)")
+        breakdown_str = "\n".join(formatted)
+    else:
+        breakdown_str = f"No breakdown available for {period_name}."
+    
+    total_mins = user_context.get('total_minutes', 0)
+    hours = total_mins // 60
+    mins = total_mins % 60
+    time_display = f"{hours} hr {mins} min" if hours > 0 else f"{mins} min"
+    
+    # Explicitly state the total count
+    base_prompt = f"""You are FitCoach, a friendly and motivating AI fitness assistant for the MLA Fitness App.
+
+USER'S FITNESS DATA ({period_name.upper()}):
+- TOTAL ACTIVITIES: {user_context.get('total_activities', 0)} (use for "how many" questions)
+- Total workout time: {time_display}
+
+BREAKDOWN BY ACTIVITY TYPE (This shows the complete summary):
+{breakdown_str}
+
+RECENT INDIVIDUAL ACTIVITIES (showing most recent):
+{activities_str}
+
+CRITICAL INSTRUCTIONS:
+- The TOTAL ACTIVITIES count ({user_context.get('total_activities', 0)}) is the COMPLETE count for {period_name}
+- The individual activities list above may only show a sample - always use the total count
+- When asked "how many exercises", respond with the TOTAL ACTIVITIES number: {user_context.get('total_activities', 0)}
+- Always mention the time period: "In the {period_name}..."
+
+YOUR RESPONSE STYLE:
+- MAXIMUM 1-2 SHORT SENTENCES
+- Always mention the time period you're analyzing
+- Use the TOTAL ACTIVITIES number when answering "how many"
+- Be enthusiastic but brief
+- Max 1 emoji per message
+
+EMOJI USAGE GUIDE:
+- Running: 🏃
+- Swimming: 🏊
+- Cycling: 🚴
+- Gym/Strength: 💪
+- Yoga: 🧘
+- Celebration: 🎉, 🏆, ⭐
+- Progress: 📈, 🔥, ⚡
+
+Remember: 
+- TOTAL activities in {period_name}: {user_context.get('total_activities', 0)}
+- Always reference this number when asked "how many"
+"""
+    
+    return base_prompt
 
 def calculate_cost(usage, model):
     """Calculate estimated cost based on token usage"""
@@ -175,22 +301,21 @@ def calculate_cost(usage, model):
 def get_user_fitness_context(username):
     """Fetch user's fitness data from MongoDB"""
     try:
-        # Get current week (Monday to today) - matching Journal "This Week"
+        # Get last 7 days (rolling window) - matching Journal "Last 7 Days"
         today = datetime.now()
-        days_since_monday = today.weekday()  # 0 = Monday, 6 = Sunday
-        week_start = today - timedelta(days=days_since_monday)
+        week_start = today - timedelta(days=6)
         week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
         
         print(f"\n{'='*60}")
-        print(f"🔍 FETCHING DATA FOR: {username}")
-        print(f"📅 This week (Mon-Today): {week_start.date()} to {today.date()}")
+        print(f"🔍 FETCHING DATA FOR: {anonymize_username(username)}")
+        print(f"📅 Last 7 days: {week_start.date()} to {today.date()}")  
         
         activities = list(db.exercises.find({
             "username": username,
             "date": {"$gte": week_start}
-        }).sort("date", -1))  # Get ALL activities this week
+        }).sort("date", -1)) 
         
-        print(f"📊 Found {len(activities)} activities this week")
+        print(f"📊 Found {len(activities)} activities in last 7 days")  
         if activities:
             print("Recent activities:")
             for a in activities[:5]:
@@ -198,7 +323,6 @@ def get_user_fitness_context(username):
         else:
             print("  ⚠️ No activities found!")
         
-        # Get all-time stats (not just this week)
         pipeline = [
             {"$match": {"username": username}},
             {"$group": {
@@ -215,7 +339,6 @@ def get_user_fitness_context(username):
         for s in stats:
             print(f"  • {s['_id']}: {s['totalDuration']} min ({s['count']} sessions)")
         
-        # Calculate total workout time THIS WEEK
         weekly_pipeline = [
             {"$match": {
                 "username": username,
@@ -229,10 +352,9 @@ def get_user_fitness_context(username):
         weekly_total = list(db.exercises.aggregate(weekly_pipeline))
         weekly_minutes = weekly_total[0]["totalDuration"] if weekly_total else 0
         
-        print(f"⏱️  This week total: {weekly_minutes} minutes")
+        print(f"⏱️  Last 7 days total: {weekly_minutes} minutes")  
         print(f"{'='*60}\n")
         
-                # Get THIS WEEK's breakdown by exercise type
         weekly_breakdown_pipeline = [
             {"$match": {
                 "username": username,
@@ -247,7 +369,7 @@ def get_user_fitness_context(username):
         ]
         weekly_breakdown = list(db.exercises.aggregate(weekly_breakdown_pipeline))
 
-        print(f"📊 This week's breakdown:")
+        print(f"📊 Last 7 days breakdown:")  
         for wb in weekly_breakdown:
             print(f"  • {wb['_id']}: {wb['totalDuration']} min ({wb['count']} sessions)")
             
@@ -258,7 +380,7 @@ def get_user_fitness_context(username):
                     "duration": a.get("duration", 0),
                     "date": a.get("date", datetime.now()).strftime("%Y-%m-%d") if isinstance(a.get("date"), datetime) else str(a.get("date", ""))
                 }
-                for a in activities[:10]  # Show last 10
+                for a in activities[:10]
             ],
             "stats": [
                 {
@@ -268,7 +390,7 @@ def get_user_fitness_context(username):
                 }
                 for s in stats
             ],
-            "weekly_breakdown": [  # NEW - This week's breakdown
+            "weekly_breakdown": [
                 {
                     "type": wb["_id"],
                     "duration": wb["totalDuration"],
@@ -286,15 +408,105 @@ def get_user_fitness_context(username):
         return {
             "recent_activities": [],
             "stats": [],
+            "weekly_breakdown": [], 
             "total_activities": 0,
             "weekly_minutes": 0
+        }
+
+def get_user_activities_for_period(username, days_back=7):
+    """
+    Fetch user's activities for a specified number of days
+    """
+    try:
+        today = datetime.now()
+        period_start = today - timedelta(days=days_back - 1)
+        period_start = period_start.replace(hour=0, minute=0, second=0, microsecond=0)
+
+        print(f"\n{'='*60}")
+        print(f"🔍 FETCHING DATA FOR: {anonymize_username(username)}")
+        print(f"Last {days_back} days: {period_start.date()} to {today.date()}")
+        
+        activities = list(db.exercises.find({
+            "username": username,
+            "date": {"$gte": period_start}
+        }).sort("date", -1))
+        
+        print(f"Found {len(activities)} activities in last {days_back} days")
+        if activities:
+            print("Activities:")
+            for a in activities[:10]:
+                print(f"  • {a.get('exerciseType')}: {a.get('duration')} min on {a.get('date')}")
+        
+        total_pipeline = [
+            {"$match": {
+                "username": username,
+                "date": {"$gte": period_start}
+            }},
+            {"$group": {
+                "_id": None,
+                "totalDuration": {"$sum": "$duration"}
+            }}
+        ]
+        total_result = list(db.exercises.aggregate(total_pipeline))
+        total_minutes = total_result[0]["totalDuration"] if total_result else 0
+        
+        breakdown_pipeline = [
+            {"$match": {
+                "username": username,
+                "date": {"$gte": period_start}
+            }},
+            {"$group": {
+                "_id": "$exerciseType",
+                "totalDuration": {"$sum": "$duration"},
+                "count": {"$sum": 1}
+            }},
+            {"$sort": {"totalDuration": -1}}
+        ]
+        breakdown = list(db.exercises.aggregate(breakdown_pipeline))
+        
+        print(f"Total: {total_minutes} minutes")
+        print(f"Breakdown:")
+        for b in breakdown:
+            print(f"  • {b['_id']}: {b['totalDuration']} min ({b['count']} sessions)")
+        print(f"{'='*60}\n")
+        
+        return {
+            "activities": [
+                {
+                    "type": a.get("exerciseType", "Unknown"),
+                    "duration": a.get("duration", 0),
+                    "date": a.get("date", datetime.now()).strftime("%Y-%m-%d") if isinstance(a.get("date"), datetime) else str(a.get("date", ""))
+                }
+                for a in activities
+            ],
+            "breakdown": [
+                {
+                    "type": b["_id"],
+                    "duration": b["totalDuration"],
+                    "count": b["count"]
+                }
+                for b in breakdown
+            ],
+            "total_activities": len(activities),
+            "total_minutes": total_minutes,
+            "period_days": days_back
+        }
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "activities": [],
+            "breakdown": [],
+            "total_activities": 0,
+            "total_minutes": 0,
+            "period_days": days_back
         }
 
 def build_system_prompt(context, user_context):
     """Build context-aware system prompt"""
     screen = context.get('screen', 'general')
     
-    # Format recent activities with clearer labels and hour conversion
     recent_activities_str = ""
     if user_context['recent_activities']:
         formatted_activities = []
@@ -309,14 +521,11 @@ def build_system_prompt(context, user_context):
                     duration_str = f"{hours} hr"
             else:
                 duration_str = f"{duration_mins} min"
-            
             formatted_activities.append(f"{i+1}. {a['type']}: {duration_str} on {a['date']}")
-        
         recent_activities_str = "NEWEST → OLDEST:\n" + "\n".join(formatted_activities)
     else:
         recent_activities_str = "No recent activities logged yet."
     
-    # Format THIS WEEK's breakdown (not all-time)
     weekly_breakdown_str = ""
     if user_context.get('weekly_breakdown'):
         formatted_weekly = []
@@ -324,19 +533,15 @@ def build_system_prompt(context, user_context):
             mins = wb['duration']
             hours = mins // 60
             remaining_mins = mins % 60
-            
             if hours > 0:
                 time_str = f"{hours} hr {remaining_mins} min"
             else:
                 time_str = f"{mins} min"
-            
             formatted_weekly.append(f"- {wb['type']}: {time_str} ({wb['count']} sessions)")
-        
         weekly_breakdown_str = "\n".join(formatted_weekly)
     else:
         weekly_breakdown_str = "No activities this week yet."
     
-    # Convert weekly minutes to hours and minutes
     weekly_mins = user_context['weekly_minutes']
     hours = weekly_mins // 60
     mins = weekly_mins % 60
@@ -363,7 +568,7 @@ IMPORTANT DATA NOTES:
 - When asked about "most recent" or "latest" activity, refer to the TOP item in recent activities list
 - The top recent activity is the NEWEST, the last one is OLDEST
 
-⚠️ DATA SANITY CHECKS - CRITICAL:
+DATA SANITY CHECKS - CRITICAL:
 - If you see workout durations over 3 hours, it's likely a DATA ERROR (user meant minutes, not hours)
 - A typical workout is 15-90 minutes. Anything over 3 hours is extreme/unusual
 - When creating workout plans, NEVER suggest sessions longer than 90 minutes
@@ -422,16 +627,13 @@ Help users review THIS WEEK's history and plan future workouts.
 def get_dynamic_suggestions(screen, conversation_history, user_context):
     """Get context-aware suggestions based on conversation, avoiding recent questions"""
     
-    # Check what was recently discussed
     recent_messages = conversation_history[-6:] if len(conversation_history) > 0 else []
     recent_text = " ".join([msg.get("content", "").lower() for msg in recent_messages])
     
-    # Extract recent user questions to avoid repeating them
     recent_questions = set()
     for msg in recent_messages:
         if msg.get("role") == "user":
             question = msg.get("content", "").lower().strip()
-            # Store normalized version
             recent_questions.add(question)
     
     # Get user data insights
@@ -443,14 +645,10 @@ def get_dynamic_suggestions(screen, conversation_history, user_context):
     def filter_recent(suggestions):
         filtered = []
         for suggestion in suggestions:
-            # Normalize suggestion for comparison
             normalized = suggestion.lower().replace("?", "").replace("!", "").replace("💪", "").replace("📊", "").replace("🎯", "").replace("🏆", "").replace("📈", "").replace("🔥", "").replace("⚡", "").replace("🎉", "").replace("📅", "").replace("🌅", "").replace("⏰", "").replace("🧘", "").replace("🗓️", "").strip()
-            
-            # Check if this suggestion is similar to recent questions
             is_recent = False
             for recent_q in recent_questions:
                 recent_normalized = recent_q.lower().replace("?", "").replace("!", "").strip()
-                # Check for similarity (not exact match, but key words)
                 if normalized in recent_normalized or recent_normalized in normalized:
                     is_recent = True
                     break
@@ -458,14 +656,13 @@ def get_dynamic_suggestions(screen, conversation_history, user_context):
             if not is_recent:
                 filtered.append(suggestion)
         
-        # If we filtered out too many, return some anyway (but still avoid exact matches)
         if len(filtered) < 2:
             return [s for s in suggestions if s.lower().strip() not in recent_questions][:4]
         
         return filtered[:4]
     
     # If this is the first interaction (no conversation history), provide fresh start suggestions
-    if len(conversation_history) <= 2:  # Just greeting exchange
+    if len(conversation_history) <= 2: 
         if has_limited_data:
             return [
                 "What's a good workout for today? 💪",
@@ -481,7 +678,7 @@ def get_dynamic_suggestions(screen, conversation_history, user_context):
                 "Help me stay motivated 🔥"
             ]
     
-    # Determine what user just talked about and provide DIFFERENT follow-ups
+    # Determine what user just talked about and provide different follow-ups
     if "strongest" in recent_text or "top" in recent_text or "best" in recent_text:
         candidates = [
             "Where can I improve?",
@@ -652,19 +849,15 @@ def get_varied_default_suggestions(screen, user_context, weekly_mins, has_activi
     screen_suggestions = suggestion_sets.get(screen, suggestion_sets["general"])
     
     if weekly_mins < 60:
-        # Low activity - encouraging
         return screen_suggestions[0]
     elif weekly_mins < 180:
-        # Moderate activity - progressing
         return random.choice(screen_suggestions[:2])
     else:
-        # High activity - advanced
         return random.choice(screen_suggestions)
 
 def get_default_suggestions(screen, user_context):
     """Get default suggestions for each screen"""
     
-    # Personalize based on user data
     has_activities = user_context.get('total_activities', 0) > 0
     weekly_mins = user_context.get('weekly_minutes', 0)
     
@@ -676,13 +869,8 @@ def get_suggestions():
     screen = request.args.get('screen', 'general')
     username = request.args.get('username', '')
     
-    # Get user context for personalization
     user_context = get_user_fitness_context(username) if username else {}
-    
-    # Get conversation history for dynamic suggestions
     conversation_history = conversation_histories.get(username, [])
-    
-    # Get dynamic suggestions based on conversation
     suggestions = get_dynamic_suggestions(screen, conversation_history, user_context)
     
     return jsonify({
