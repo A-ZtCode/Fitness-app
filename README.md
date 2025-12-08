@@ -7,47 +7,22 @@ The Activity Tracking functionality uses the MERN stack (MongoDB, Express.js, Re
 ![Screenshot](screenshots/frontpage.png)  
 
 ### Project Setup Instructions
+#### Please follow the instructions here: [docs/setup-guide.md](docs/setup-guide.md)
 
-- One fork per group: Before you begin, one member of your group should fork this repository.
-- Each group member should clone the forked version of the repository to their local environment or GitHub Codespace.
-- All project work should be done in your group's fork.
+### Features
 
-**Important -- Add .env and application.properties files:**
-Files containing environment variables and secret keys are not uploaded to the github repository for security reasons. These files must be added before you can run the app.
-To do so manually:
-- In the **activity-tracking**, **analytics**, **graphql-gateway**, and **ai-speech-parser** directories there is an `.env.example` file.
-- In each directory, copy the contents of the `.env.example` into a new `.env` file.
-- Replace any placeholder values with the real values (such as JWT Secret Key)
-- The real values can be found in the group's shared Google Drive.
-- In `authservice/src/main/resources`, copy the contents of `application.properties.example` into a new `application.properties` file.
-- Again, replace any placeholder values with the real values.
-
-Alternatively, run the script `create-env-files.sh` from the root directory to have the files and a JWT secret key automatically generated for you.
-You will still need to insert the API Key for **ai-speech-parser**, and the mail service username and password in **authservice**.
-
-**AI-Powered Chatbot Setup:**
-The chatbot requires an OpenAI API key to function.
-- In the **analytics** directory, ensure you have a `.env` file (created from `.env.example` above).
-- Add your OpenAI API key to the `.env` file: `OPENAI_API_KEY=your_key_here`
-- **Option 1 (Team):** Find the shared API key in the group's **Google Drive** → ai-chatbot openai-key.txt`
-- **Option 2 (Personal):** Generate your own key at [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)
-
-**Running the Application:**
-Terminal - Run Docker Services:
-```bash
-   docker compose up -d --build or docker compose build --no-cache
-   then
-   docker compose up -d
-```
-After logging in, look for the purple chat button (💬) in the bottom-right corner to use the AI chatbot.
-
-### Current Features
-
-- User registration for personalized tracking
+- User registration via email with verification
 - Log various types of exercises with descriptions, duration, and date
-- See weekly and overall statistics
+- Create & save up to 10 custom exercise types
+- Live exercise session timer
+- Voice-based activity logging with the AI speech-to-text parser
+- In-depth Statistics dashboard showing weekly/daily trends
+- Journal of logged activities with date-range filters
+- FitCoach AI chatbot for safe fitness suggestions and motivation
+- Several colour theme options
 - Interactive UI with Material-UI components
 - Real-time data persistence with MongoDB
+- GraphQL gateway used for Journal & Statistics pages
 
 ### Prerequisites
 
