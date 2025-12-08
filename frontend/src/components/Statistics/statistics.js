@@ -45,9 +45,6 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 // Define a simple, clean, monochromatic blue/purple palette
 const ACCENT_COLOR_PRIMARY = "#5B53D0"; // Deep Blue/Violet for main elements
-const ACCENT_COLOR_SECONDARY = "#ff0073"; // Vibrant Pink for highlights
-const COLOR_HIGH_CONTRAST = "#FF8C00"; // Dark Orange for high contrast elements
-const NEUTRAL_COLOR_LIGHT = "#E0E0E0"; // Light grey for backgrounds/neutral elements
 // CHART_COLORS - Expanded vibrant palette for 20+ different activities
 const CHART_COLORS = [
   "#5B53D0", // 1. Deep Purple (brand color)
@@ -268,11 +265,12 @@ const Statistics = ({ currentUser }) => {
                 <LineChart data={weeklyData}>
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    stroke={NEUTRAL_COLOR_LIGHT}
+                    stroke={themeColors["border-medium"]}
                   />
                   <XAxis
                     dataKey="name"
-                    stroke="#555"
+                    stroke={themeColors["text-secondary"]}
+                    tick={{ fill: themeColors["text-secondary"] }}
                     style={{ fontSize: "11px" }}
                     tickFormatter={(dayName) => {
                       // Find the date for this day
@@ -289,7 +287,7 @@ const Statistics = ({ currentUser }) => {
                       return dayName;
                     }}
                   />
-                  <YAxis stroke="#555" />
+                  <YAxis stroke={themeColors["text-secondary"]} tick={{ fill: themeColors["text-secondary"] }} />
 
                   <Tooltip
                     formatter={(value, name) => {
@@ -339,25 +337,25 @@ const Statistics = ({ currentUser }) => {
               <div className="donut-chart-container">
                 <div className="donut-chart-wrapper">
                   <ResponsiveContainer width="100%" height={280}>
-                    <PieChart>
+                    <PieChart margin={{ left: 30, right: 30 }}>
                       <Pie
                         data={distributionData}
                         dataKey="value"
                         nameKey="name"
                         cx="50%"
                         cy="50%"
-                        innerRadius="40%"
-                        outerRadius="70%"
+                        innerRadius="35%"
+                        outerRadius="60%"
                         fill={ACCENT_COLOR_PRIMARY}
                         labelLine={{
-                          stroke: "#8884d8",
+                          stroke: themeColors["text-muted"],
                           strokeWidth: 1,
                         }}
                         label={({ cx, cy, midAngle, outerRadius, percent }) => {
                           if (percent < 0.003) return null;
 
                           const RADIAN = Math.PI / 180;
-                          const radius = outerRadius + 30;
+                          const radius = outerRadius + 20;
                           const x = cx + radius * Math.cos(-midAngle * RADIAN);
                           const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
@@ -365,11 +363,11 @@ const Statistics = ({ currentUser }) => {
                             <text
                               x={x}
                               y={y}
-                              fill="#333"
+                              fill={themeColors["text-primary"]}
                               textAnchor={x > cx ? "start" : "end"}
                               dominantBaseline="central"
                               style={{
-                                fontSize: "14px",
+                                fontSize: "13px",
                                 fontWeight: "bold",
                               }}
                             >

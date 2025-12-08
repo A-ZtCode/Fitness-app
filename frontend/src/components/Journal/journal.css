@@ -182,6 +182,7 @@
   max-width: 100%;
   white-space: normal !important;
   line-height: 1.4;
+  color: var(--text-muted);
 }
 
 .card-body {

@@ -38,7 +38,7 @@ const Signup = () => {
     fontSize: "1rem",
     fontFamily: "inherit",
     color: "var(--text-primary)",
-    backgroundColor: "var(--bg-secondary)",
+    backgroundColor: "var(--bg-elevated)",
     border: isFocused
       ? "2px solid var(--color-primary)"
       : "1px solid var(--border-medium)",
@@ -54,15 +54,15 @@ const Signup = () => {
       cursor: "not-allowed",
     },
     "&:-webkit-autofill": {
-      WebkitBoxShadow: "0 0 0 1000px var(--bg-secondary) inset !important",
+      WebkitBoxShadow: "0 0 0 1000px var(--bg-elevated) inset !important",
       WebkitTextFillColor: "var(--text-primary) !important",
       transition: "background-color 5000s ease-in-out 0s",
     },
     "&:-webkit-autofill:hover": {
-      WebkitBoxShadow: "0 0 0 1000px var(--bg-secondary) inset !important",
+      WebkitBoxShadow: "0 0 0 1000px var(--bg-elevated) inset !important",
     },
     "&:-webkit-autofill:focus": {
-      WebkitBoxShadow: "0 0 0 1000px var(--bg-secondary) inset !important",
+      WebkitBoxShadow: "0 0 0 1000px var(--bg-elevated) inset !important",
     },
   });
 
@@ -73,7 +73,7 @@ const Signup = () => {
     fontSize: isFocused || hasValue ? "0.75rem" : "1rem",
     fontWeight: isFocused ? 600 : 500,
     color: isFocused ? "var(--color-primary)" : "var(--text-secondary)",
-    backgroundColor: "var(--bg-secondary)",
+    backgroundColor: "var(--bg-elevated)",
     padding: "0 4px",
     pointerEvents: "none",
     transition: "all 0.2s ease",
