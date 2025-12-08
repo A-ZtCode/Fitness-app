@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import axios from 'axios';
 import Verify from './verify';
 import { MemoryRouter } from 'react-router-dom';
+import { ThemeProvider } from '../../contexts/ThemeContext';
 
 jest.mock('axios');
 
@@ -12,16 +13,22 @@ jest.mock('react-router-dom', () => ({
     useNavigate: () => mockedNavigate
 }))
 
+const renderVerify = () => {
+    render(
+        <ThemeProvider>
+            <MemoryRouter>
+                <Verify />
+            </MemoryRouter>
+        </ThemeProvider>
+    );
+};
+
 beforeEach(() => {
     Object.defineProperty(window, 'location', {
         writable: true,
         value: { search: '?token=test-jwt-token' }
     });
-    render(
-        <MemoryRouter>
-            <Verify />
-        </MemoryRouter>
-    );
+    renderVerify();
     mockedNavigate.mockClear();
 });
 
@@ -61,11 +68,7 @@ it('shows error message when no token is provided', async () => {
         writable: true,
         value: { search: '' }
     });
-    render(
-        <MemoryRouter>
-            <Verify />
-        </MemoryRouter>
-    );
+    renderVerify();
     expect(screen.getByText(/No verification token provided/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Back to signup/i })).toBeInTheDocument();
 });
@@ -75,11 +78,7 @@ it('navigates to signup when user clicks back to signup', async () => {
         writable: true,
         value: { search: '' }
     });
-    render(
-        <MemoryRouter>
-            <Verify />
-        </MemoryRouter>
-    );
+    renderVerify();
 
     fireEvent.click(screen.getByRole('button', { name: /Back to signup/i }));
     expect(mockedNavigate).toHaveBeenCalledWith('/signup');
