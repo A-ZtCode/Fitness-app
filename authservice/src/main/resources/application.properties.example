@@ -3,9 +3,19 @@ logging.level.com.authservice=DEBUG
 spring.data.mongodb.database=test
 spring.data.mongodb.uri=mongodb://root:cfgmla23@localhost:27017
 jwt.secret.key=JWT_KEY_HERE
+
+# Real Email Server Settings
 spring.mail.host=smtp.gmail.com
 spring.mail.port=587
 spring.mail.username=USERNAME
 spring.mail.password=PASSWORD
 spring.mail.properties.mail.smtp.auth=true
 spring.mail.properties.mail.smtp.starttls.enable=true
+
+# MailHog Server Settings
+# spring.mail.host=mailhog
+# spring.mail.port=1025
+# spring.mail.username=
+# spring.mail.password=
+# spring.mail.properties.mail.smtp.auth=false
+# spring.mail.properties.mail.smtp.starttls.enable=false
